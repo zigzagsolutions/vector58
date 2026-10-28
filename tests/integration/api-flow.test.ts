@@ -7,7 +7,7 @@
 import { verifyPolicyChecksum } from '@bsp/policy-engine';
 import type { PolicyPayload } from '@bsp/policy-types';
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import * as api from '@/server/api/v1';
 import { closePool as closeAppPool } from '@/server/db';
 import { syncThreatSource, listIndicators } from '@/server/services/threats';
@@ -168,7 +168,7 @@ describe('policy publishing', () => {
       api.orgPublishPolicy(req('POST', '/x'), params({ id: ORG_ACME, policyId: state.policyId! }), acmeOwner),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(
-      api.orgPublishPolicy(req('POST', '/x'), params({ id: ORG_ACME, policyId: '00000000-0000-4000-f100-000000000002' }), acmeAnalyst),
+      api.orgPublishPolicy(req('POST', '/x'), params({ id: ORG_ACME, policyId: '00000000-0000-4f10-8000-000000000002' }), acmeAnalyst),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
@@ -411,9 +411,9 @@ describe('audit logging', () => {
 
 describe('threat feed ingestion', () => {
   it('sample feed ingests, dedupes and is idempotent', async () => {
-    const first = await syncThreatSource({ kind: 'system' }, '00000000-0000-4000-f600-000000000002');
+    const first = await syncThreatSource({ kind: 'system' }, '00000000-0000-4f60-8000-000000000002');
     expect(first.created).toBe(5);
-    const second = await syncThreatSource({ kind: 'system' }, '00000000-0000-4000-f600-000000000002');
+    const second = await syncThreatSource({ kind: 'system' }, '00000000-0000-4f60-8000-000000000002');
     expect(second.created).toBe(0);
     expect(second.updated).toBe(5);
     const authz = new Authorizer({ getUser: async () => ({ id: USERS.platformSecurityAdmin, email: null }) });

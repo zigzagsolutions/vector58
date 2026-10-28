@@ -6,7 +6,7 @@
   "scripts": {
     "test": "vitest run --config vitest.unit.config.ts",
     "test:db": "vitest run --config vitest.db.config.ts",
-    "test:e2e": "playwright test --config browser-e2e/playwright.config.ts",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint ."
   },
@@ -16,7 +16,8 @@
     "@bsp/policy-types": "workspace:*",
     "@bsp/shared": "workspace:*",
     "@bsp/url-normalizer": "workspace:*",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

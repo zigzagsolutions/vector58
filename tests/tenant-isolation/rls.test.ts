@@ -111,7 +111,7 @@ describe('Tenant A cannot read Tenant B', () => {
     await asUser(USERS.acmeOwner, async (c) => {
       await expect(
         c.query(`insert into public.policy_rules (organization_id, policy_id, rule_type, normalized_value, normalized_hash)
-                 values ($1, '00000000-0000-4000-f100-000000000002', 'BLOCK_DOMAIN', 'x.example', repeat('b', 64))`, [ORG_ACME]),
+                 values ($1, '00000000-0000-4f10-8000-000000000002', 'BLOCK_DOMAIN', 'x.example', repeat('b', 64))`, [ORG_ACME]),
       ).rejects.toThrow(/permission denied/);
     });
     await asUser(USERS.acmeOwner, async (c) => {
@@ -159,8 +159,8 @@ describe('permission-granular access within a tenant', () => {
   it('browser-history evidence requires tenant.incident.history.read', async () => {
     await asService((c) =>
       c.query(`insert into public.incident_artifacts (organization_id, incident_id, artifact_type, content)
-               values ($1, '00000000-0000-4000-f500-000000000002', 'browser_history', '{"entries":[]}'),
-                      ($1, '00000000-0000-4000-f500-000000000002', 'diagnostics', '{}')`, [ORG_ACME]),
+               values ($1, '00000000-0000-4f50-8000-000000000002', 'browser_history', '{"entries":[]}'),
+                      ($1, '00000000-0000-4f50-8000-000000000002', 'diagnostics', '{}')`, [ORG_ACME]),
     );
     await asUser(USERS.acmeSecAdmin, async (c) => {
       expect(await count(c, `select 1 from public.incident_artifacts where artifact_type = 'browser_history'`)).toBe(0);
@@ -289,7 +289,7 @@ describe('integrity triggers', () => {
     await asService(async (c) => {
       const v = await c.query<{ id: string }>(
         `insert into public.policy_versions (organization_id, policy_id, version_number, schema_version, rule_count, checksum, compiled_payload)
-         values ($1, '00000000-0000-4000-f100-000000000002', 999, 1, 0, repeat('c', 64), '{}') returning id`,
+         values ($1, '00000000-0000-4f10-8000-000000000002', 999, 1, 0, repeat('c', 64), '{}') returning id`,
         [ORG_ACME],
       );
       const id = v.rows[0]!.id;
@@ -309,7 +309,7 @@ describe('integrity triggers', () => {
       ).rejects.toThrow(/foreign key/);
       await expect(
         c.query(`insert into public.policy_rules (organization_id, policy_id, rule_type, normalized_value, normalized_hash)
-                 values ($1, '00000000-0000-4000-f100-000000000002', 'BLOCK_DOMAIN', 'x.example', repeat('e', 64))`, [ORG_INTERNAL]),
+                 values ($1, '00000000-0000-4f10-8000-000000000002', 'BLOCK_DOMAIN', 'x.example', repeat('e', 64))`, [ORG_INTERNAL]),
       ).rejects.toThrow(/foreign key/);
     });
   });

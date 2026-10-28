@@ -83,14 +83,10 @@ public sealed class NativeHostRelay(IReadOnlySet<string> allowedExtensionIds, Te
                 AgentConstants.MaxMessageToBrowserBytes, NativeMessageTypes.ToExtension, stop.Token);
             await Task.WhenAny(up, down).ConfigureAwait(false);
             await stop.CancelAsync().ConfigureAwait(false);
-            try
-            {
-                await Task.WhenAll(up, down).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected when one side closes.
-            }
+            // Console stdin reads ignore cancellation, so never wait on the other pump
+            // indefinitely: returning lets the process exit, which closes the browser port
+            // and tells the extension to show "degraded" and reconnect.
+            await Task.WhenAny(Task.WhenAll(up, down), Task.Delay(TimeSpan.FromSeconds(1), CancellationToken.None)).ConfigureAwait(false);
         }
         return RelayExit.Normal;
     }

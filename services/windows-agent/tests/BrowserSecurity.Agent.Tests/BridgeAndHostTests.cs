@@ -62,8 +62,12 @@ public sealed class BridgeFixture : IAsyncDisposable
         Assert.True(condition());
     }
 
+    private bool _disposed;
+
     public async ValueTask DisposeAsync()
     {
+        if (_disposed) return;
+        _disposed = true;
         await _cts.CancelAsync();
         try
         {
@@ -336,5 +340,41 @@ public class TrayPresenterTests
         Assert.Equal(TrayState.ServiceUnavailable, TrayPresenter.Present(null, Now).State);
         var notEnrolled = Snapshot() with { Enrolled = false };
         Assert.Equal(TrayState.NotEnrolled, TrayPresenter.Present(notEnrolled, Now).State);
+    }
+}
+
+public class NativeHostShutdownTests
+{
+    /// <summary>A stream whose reads never complete and ignore cancellation, like console stdin.</summary>
+    private sealed class StuckStream : Stream
+    {
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => 0;
+        public override long Position { get => 0; set { } }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => new(new TaskCompletionSource<int>().Task);
+        public override long Seek(long offset, SeekOrigin origin) => 0;
+        public override void SetLength(long value) { }
+        public override void Write(byte[] buffer, int offset, int count) { }
+    }
+
+    [Fact]
+    public async Task Exits_when_the_service_goes_away_even_if_stdin_read_is_stuck()
+    {
+        await using var f = new BridgeFixture();
+        var relay = new NativeHostRelay(new HashSet<string> { BridgeFixture.ExtId }, TextWriter.Null);
+        NamedPipeClientStream? servicePipe = null;
+        var run = relay.RunAsync([BridgeFixture.Origin], new StuckStream(), Stream.Null, async ct =>
+        {
+            servicePipe = new NamedPipeClientStream(".", f.Options.Value.BrowserPipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            await servicePipe.ConnectAsync(ct);
+            return servicePipe;
+        }, CancellationToken.None);
+        await BridgeFixture.Eventually(() => servicePipe is { IsConnected: true });
+        await f.DisposeAsync(); // service stops: its end of the pipe closes
+        Assert.Equal(RelayExit.Normal, await run.WaitAsync(TimeSpan.FromSeconds(10)));
     }
 }

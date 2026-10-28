@@ -1,6 +1,6 @@
 import { ORG_INTERNAL, asService } from '../fixtures/db';
 
-export const INTERNAL_DEVICE = '00000000-0000-4000-f300-000000000001';
+export const INTERNAL_DEVICE = '00000000-0000-4f30-8000-000000000001';
 
 /** Mirror the seeded Acme data inside Internal so every cross-tenant check has a positive control. */
 export async function ensureInternalFixtures() {
@@ -13,12 +13,12 @@ export async function ensureInternalFixtures() {
     );
     await c.query(
       `insert into public.security_events (organization_id, device_id, source_event_id, event_type, occurred_at, domain)
-       values ($1, $2, '00000000-0000-4000-f400-000000000099', 'URL_BLOCKED', now(), 'internal-only.example')
+       values ($1, $2, '00000000-0000-4f40-8000-000000000099', 'URL_BLOCKED', now(), 'internal-only.example')
        on conflict do nothing`,
       [ORG_INTERNAL, INTERNAL_DEVICE],
     );
     await c.query(
-      `insert into public.incidents (id, organization_id, title) values ('00000000-0000-4000-f500-000000000001', $1, 'Internal incident')
+      `insert into public.incidents (id, organization_id, title) values ('00000000-0000-4f50-8000-000000000001', $1, 'Internal incident')
        on conflict (id) do nothing`,
       [ORG_INTERNAL],
     );
