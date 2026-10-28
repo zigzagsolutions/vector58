@@ -44,6 +44,7 @@ public sealed class BrowserBridge(
     public const int MaxEventBytes = 16 * 1024;
     private static readonly TimeSpan HelloTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan ForgetDisconnectedAfter = TimeSpan.FromHours(24);
+    private static readonly TimeSpan WriteTimeout = TimeSpan.FromSeconds(30);
 
     private readonly ConcurrentDictionary<Guid, Connection> _connections = new();
     private readonly ConcurrentDictionary<string, ClientRecord> _clients = new();
@@ -226,9 +227,13 @@ public sealed class BrowserBridge(
         return System.Text.Encoding.UTF8.GetByteCount(clone.ToJsonString()) <= MaxEventBytes ? clone : null;
     }
 
-    public async Task BroadcastPolicyAsync(ValidatedPolicy policy, CancellationToken ct)
-    {
-        foreach (var conn in _connections.Values)
+    /// <summary>
+    /// Sends to every browser concurrently. A Windows pipe write completes only
+    /// once the reader drains it, so a sequential loop would let one stalled
+    /// browser hold back the policy for all the others.
+    /// </summary>
+    public Task BroadcastPolicyAsync(ValidatedPolicy policy, CancellationToken ct) =>
+        Task.WhenAll(_connections.Values.Select(async conn =>
         {
             try
             {
@@ -238,8 +243,7 @@ public sealed class BrowserBridge(
             {
                 log.LogInformation("Could not push policy to a browser: {Error}", e.Message);
             }
-        }
-    }
+        }));
 
     private async Task SendPolicyAsync(Connection conn, ValidatedPolicy policy, CancellationToken ct)
     {
@@ -265,42 +269,55 @@ public sealed class BrowserBridge(
 
     private static async Task SendAsync(Connection conn, JsonObject message, CancellationToken ct)
     {
-        await conn.WriteLock.WaitAsync(ct).ConfigureAwait(false);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(WriteTimeout);
         try
         {
-            await MessageFraming.WriteJsonAsync(conn.Stream, message, AgentConstants.MaxMessageToBrowserBytes, ct).ConfigureAwait(false);
+            await conn.WriteLock.WaitAsync(timeout.Token).ConfigureAwait(false);
+            try
+            {
+                await MessageFraming.WriteJsonAsync(conn.Stream, message, AgentConstants.MaxMessageToBrowserBytes, timeout.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+                conn.WriteLock.Release();
+            }
         }
-        finally
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            conn.WriteLock.Release();
+            // The browser stopped reading. An abandoned write may leave a partial
+            // frame, so drop the connection; the extension reconnects and asks
+            // for the policy again.
+            await conn.Stream.DisposeAsync().ConfigureAwait(false);
+            throw new IOException("Timed out writing to the browser; connection closed.");
         }
     }
 
     public async Task<IReadOnlyList<JsonObject>> RequestDiagnosticsAsync(TimeSpan timeout, CancellationToken ct)
     {
-        var waits = new List<Task<JsonObject>>();
-        var keys = new List<string>();
-        foreach (var conn in _connections.Values)
+        var pending = _connections.Values.Select(conn => (conn, id: Guid.NewGuid().ToString("N"))).ToList();
+        var keys = pending.Select(p => p.id).ToList();
+        var sent = await Task.WhenAll(pending.Select(async p =>
         {
-            var requestId = Guid.NewGuid().ToString("N");
             var tcs = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _pendingDiagnostics[requestId] = tcs;
-            keys.Add(requestId);
+            _pendingDiagnostics[p.id] = tcs;
             try
             {
-                await SendAsync(conn, new JsonObject
+                await SendAsync(p.conn, new JsonObject
                 {
                     ["type"] = NativeMessageTypes.DiagnosticRequest,
                     ["protocolVersion"] = AgentConstants.NativeProtocolVersion,
-                    ["requestId"] = requestId,
+                    ["requestId"] = p.id,
                 }, ct).ConfigureAwait(false);
-                waits.Add(tcs.Task);
+                return tcs.Task;
             }
             catch (Exception e) when (e is IOException or ObjectDisposedException)
             {
                 log.LogInformation("Diagnostic request failed: {Error}", e.Message);
+                return null;
             }
-        }
+        })).ConfigureAwait(false);
+        var waits = sent.OfType<Task<JsonObject>>().ToList();
         try
         {
             await Task.WhenAny(Task.WhenAll(waits), Task.Delay(timeout, time, ct)).ConfigureAwait(false);

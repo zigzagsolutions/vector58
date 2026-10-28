@@ -124,9 +124,53 @@ public class BrowserBridgeTests
         await BridgeFixture.Send(b, Health.Replace("client-0001", "client-0002", StringComparison.Ordinal), f.Token);
         await BridgeFixture.Eventually(() => f.Bridge.Clients.Count == 2);
 
-        await f.Bridge.BroadcastPolicyAsync(PolicyValidator.Validate(Vectors.Policy(1)), f.Token);
+        // On Windows a pipe write completes only once the reader drains it, so read while broadcasting.
+        var broadcast = f.Bridge.BroadcastPolicyAsync(PolicyValidator.Validate(Vectors.Policy(1)), f.Token);
         Assert.Equal("POLICY_UPDATE", Json.Str(await BridgeFixture.Receive(a, f.Token), "type"));
         Assert.Equal("POLICY_UPDATE", Json.Str(await BridgeFixture.Receive(b, f.Token), "type"));
+        await broadcast;
+    }
+
+    [Fact]
+    public async Task A_browser_that_stops_reading_does_not_hold_back_the_others()
+    {
+        await using var f = new BridgeFixture();
+        var stalled = await f.ConnectAsExtensionAsync();
+        await using var b = await f.ConnectAsExtensionAsync();
+        await BridgeFixture.Send(stalled, Health, f.Token);
+        await BridgeFixture.Send(b, Health.Replace("client-0001", "client-0002", StringComparison.Ordinal), f.Token);
+        await BridgeFixture.Eventually(() => f.Bridge.Clients.Count == 2);
+
+        // Larger than any pipe or socket buffer, so the write to the stalled client cannot complete.
+        var broadcast = f.Bridge.BroadcastPolicyAsync(PolicyValidator.Validate(LargePolicy(4000)), f.Token);
+        var update = await BridgeFixture.Receive(b, f.Token);
+        Assert.Equal(4000, ((JsonArray)((JsonObject)update["payload"]!)["rules"]!).Count);
+
+        await stalled.DisposeAsync();
+        await broadcast;
+    }
+
+    private static JsonObject LargePolicy(int ruleCount)
+    {
+        var policy = Vectors.Policy(1);
+        var rules = new JsonArray();
+        for (var i = 1; i <= ruleCount; i++)
+        {
+            rules.Add(new JsonObject
+            {
+                ["id"] = i,
+                ["type"] = "domain",
+                ["value"] = $"stalled-browser-test-{i:D5}.example",
+                ["action"] = "block",
+                ["category"] = "malware",
+                ["priority"] = 2000,
+                ["source"] = "tenant",
+            });
+        }
+        policy["rules"] = rules;
+        policy.Remove("checksum");
+        policy["checksum"] = PolicyChecksum.Compute(policy);
+        return policy;
     }
 
     [Fact]
