@@ -1,0 +1,173 @@
+{
+  "generatedBy": "scripts/generate-agent-vectors.ts",
+  "canonical": [
+    {
+      "input": "null",
+      "canonical": "null",
+      "sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    {
+      "input": "true",
+      "canonical": "true",
+      "sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+    },
+    {
+      "input": "0",
+      "canonical": "0",
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "input": "-42",
+      "canonical": "-42",
+      "sha256": "fec80006df0542549b4cbaafb8987eee00bb49bca396eefe9ac8be5b5928e8f6"
+    },
+    {
+      "input": "9007199254740991",
+      "canonical": "9007199254740991",
+      "sha256": "f40b423c2dd95ff2b2f027e22208f438cf7242862e5e746860e697308c9add26"
+    },
+    {
+      "input": "\"\"",
+      "canonical": "\"\"",
+      "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+    },
+    {
+      "input": "\"plain ascii\"",
+      "canonical": "\"plain ascii\"",
+      "sha256": "4274df7aca57f5d7fea57a2411e8525202fc6396cf9163a80c015c11fea0621c"
+    },
+    {
+      "input": "\"quote \\\" backslash \\\\ slash / tab \\t newline \\n cr \\r bs \\b ff \\f\"",
+      "canonical": "\"quote \\\" backslash \\\\ slash / tab \\t newline \\n cr \\r bs \\b ff \\f\"",
+      "sha256": "6ce0ae3b17c8385924f20dc3d5c92c04a99d76ac8a5ebcc18c52dc85f568e989"
+    },
+    {
+      "input": "\"control \\u0000 \\u0001 \\u001f del \"",
+      "canonical": "\"control \\u0000 \\u0001 \\u001f del \"",
+      "sha256": "15bdc98b17d0205a4a80a6eca55a7e9e679c5b0d6e818c941021c9e707dc763e"
+    },
+    {
+      "input": "\"unicode é ü ñ 中文 עברית\"",
+      "canonical": "\"unicode é ü ñ 中文 עברית\"",
+      "sha256": "5c9e723b57fc31e011e14186f47091a9be4d5a089e5791c309b19c29ae519069"
+    },
+    {
+      "input": "\"emoji 🛡️ 👩‍💻\"",
+      "canonical": "\"emoji 🛡️ 👩‍💻\"",
+      "sha256": "eea3bece77f3670b0f1e7a2d571b51d742fe9830fb3eb31d78ed355508958ed2"
+    },
+    {
+      "input": "\"separators     and html <script>&amp;</script>\"",
+      "canonical": "\"separators     and html <script>&amp;</script>\"",
+      "sha256": "ff718aaffcbf909163d0b22f89fe9e673581ec35b8ff57120795eff2eb139fce"
+    },
+    {
+      "input": "[]",
+      "canonical": "[]",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "input": "{}",
+      "canonical": "{}",
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "input": "[1,\"a\",null,false,[2,[3]],{\"z\":1,\"a\":2}]",
+      "canonical": "[1,\"a\",null,false,[2,[3]],{\"a\":2,\"z\":1}]",
+      "sha256": "9d0a3c7d124b2000b63885856429208ca390db84b5594bbb18a50646dbc81829"
+    },
+    {
+      "input": "{\"9\":7,\"10\":6,\"b\":1,\"a\":2,\"B\":3,\"_\":4,\"aa\":5,\"ä\":8,\"é\":9,\"Z\":10,\"\":11}",
+      "canonical": "{\"\":11,\"10\":6,\"9\":7,\"B\":3,\"Z\":10,\"_\":4,\"a\":2,\"aa\":5,\"b\":1,\"ä\":8,\"é\":9}",
+      "sha256": "6243beffe26d3d52497c14c689e12cf20d0ed44869ddf09c3764dd015b0fc7f3"
+    },
+    {
+      "input": "{\"nested\":{\"y\":[{\"b\":true,\"a\":null}],\"x\":\"v\"}}",
+      "canonical": "{\"nested\":{\"x\":\"v\",\"y\":[{\"a\":null,\"b\":true}]}}",
+      "sha256": "2f8bf85e7684be1a108817b792887717973670c458597b84d1d1547fc7111443"
+    }
+  ],
+  "policies": [
+    {
+      "schemaVersion": 1,
+      "policyVersion": 1,
+      "organizationId": "00000000-0000-4000-a000-000000000001",
+      "generatedAt": "2026-10-28T12:00:00.000Z",
+      "rules": [
+        {
+          "id": 302713915,
+          "type": "exact_url",
+          "value": "https://bad.example/login",
+          "action": "block",
+          "category": "credential-theft",
+          "priority": 1080,
+          "source": "global"
+        },
+        {
+          "id": 496184406,
+          "type": "domain",
+          "value": "global-malware-test.example",
+          "action": "block",
+          "category": "malware",
+          "priority": 1095,
+          "source": "global"
+        }
+      ],
+      "checksum": "f7dcd4001f641c990f60c01c6efedc67a451f3f4bd47729f930ab1cd0aee0603"
+    },
+    {
+      "schemaVersion": 1,
+      "policyVersion": 2,
+      "organizationId": "00000000-0000-4000-a000-000000000002",
+      "generatedAt": "2026-10-28T12:00:00.000Z",
+      "rules": [
+        {
+          "id": 15191408,
+          "type": "domain",
+          "value": "xn--bcher-kva.example",
+          "action": "block",
+          "category": "phishing",
+          "priority": 2000,
+          "source": "tenant"
+        },
+        {
+          "id": 235252138,
+          "type": "domain",
+          "value": "false-positive.example",
+          "action": "allow",
+          "category": "custom",
+          "priority": 3999,
+          "source": "tenant"
+        },
+        {
+          "id": 302713915,
+          "type": "exact_url",
+          "value": "https://bad.example/login",
+          "action": "block",
+          "category": "credential-theft",
+          "priority": 1080,
+          "source": "global"
+        },
+        {
+          "id": 429970366,
+          "type": "domain",
+          "value": "phase1-block-test.example",
+          "action": "block",
+          "category": "custom",
+          "priority": 2100,
+          "source": "tenant"
+        },
+        {
+          "id": 496184406,
+          "type": "domain",
+          "value": "global-malware-test.example",
+          "action": "block",
+          "category": "malware",
+          "priority": 1095,
+          "source": "global"
+        }
+      ],
+      "checksum": "3e444094059606e4d36aff8f1c8c2390382348f8ce45d52e8bcaa2e772d5c93c"
+    }
+  ]
+}
