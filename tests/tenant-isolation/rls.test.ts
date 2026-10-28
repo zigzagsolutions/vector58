@@ -194,6 +194,7 @@ describe('platform users and tenant context', () => {
 
   it('an entered context grants that tenant only, per platform role', async () => {
     const ctx = await asService(async (c) => {
+      await c.query(`update public.platform_tenant_contexts set ended_at = now() where ended_at is null`);
       const r = await c.query<{ id: string }>(
         `insert into public.platform_tenant_contexts (actor_user_id, organization_id, platform_roles, expires_at)
          values ($1, $2, array['PlatformSecurityAdmin'], now() + interval '30 minutes') returning id`,

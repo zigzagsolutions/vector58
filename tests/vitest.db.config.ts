@@ -15,6 +15,7 @@ export default defineConfig({
   test: {
     include: ['tenant-isolation/**/*.test.ts', 'integration/**/*.test.ts'],
     globalSetup: ['./fixtures/global-setup.ts'],
+    setupFiles: ['./fixtures/env.ts'],
     fileParallelism: false,
     testTimeout: 30_000,
     hookTimeout: 120_000,

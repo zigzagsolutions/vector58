@@ -105,6 +105,8 @@ create table public.audit_events (
   id                 uuid primary key default gen_random_uuid(),
   organization_id    uuid references public.organizations (id),
   actor_user_id      uuid references public.profiles (id),
+  -- Snapshot of the actor's email at the time of the action (identity survives profile changes).
+  actor_email        text,
   actor_device_id    uuid,
   actor_scope        text not null check (actor_scope in ('platform', 'tenant', 'device', 'system')),
   platform_role      text,

@@ -2,3 +2,6 @@ packages:
   - "apps/*"
   - "packages/*"
   - "tests"
+onlyBuiltDependencies:
+  - esbuild
+  - unrs-resolver
