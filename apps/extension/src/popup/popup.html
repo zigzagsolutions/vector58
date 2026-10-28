@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Browser Security</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <h1>Browser Security</h1>
+    <p id="state" class="state">Loading&hellip;</p>
+    <dl>
+      <dt>Agent connection</dt><dd id="native">&ndash;</dd>
+      <dt>Policy version</dt><dd id="policy">&ndash;</dd>
+      <dt>Active rules</dt><dd id="rules">&ndash;</dd>
+      <dt>Last applied</dt><dd id="applied">&ndash;</dd>
+      <dt>Queued events</dt><dd id="queued">&ndash;</dd>
+      <dt>Version</dt><dd id="version">&ndash;</dd>
+    </dl>
+    <p id="error" class="error" hidden></p>
+    <p class="note">Protection is managed by your organization and cannot be turned off here.</p>
+    <script src="popup.js"></script>
+  </body>
+</html>

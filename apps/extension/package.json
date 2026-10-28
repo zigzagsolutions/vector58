@@ -1,0 +1,26 @@
+{
+  "name": "@bsp/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared Manifest V3 enforcement adapter for Chrome and Microsoft Edge",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src test scripts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bsp/policy-engine": "workspace:*",
+    "@bsp/policy-types": "workspace:*",
+    "@bsp/shared": "workspace:*",
+    "@bsp/url-normalizer": "workspace:*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.7",
+    "esbuild": "^0.28.2",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5"
+  }
+}

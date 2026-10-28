@@ -1,0 +1,12 @@
+:root { color-scheme: light dark; --fg: #111827; --muted: #6b7280; --bg: #fff; --ok: #15803d; --warn: #b45309; }
+@media (prefers-color-scheme: dark) { :root { --fg: #f3f4f6; --muted: #9ca3af; --bg: #1f2937; --ok: #4ade80; --warn: #fbbf24; } }
+body { width: 300px; margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; }
+h1 { font-size: 15px; margin: 0 0 8px; }
+.state { font-weight: 600; margin: 0 0 12px; }
+.state.ok { color: var(--ok); }
+.state.degraded { color: var(--warn); }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
+dt { color: var(--muted); }
+dd { margin: 0; }
+.error { color: var(--warn); word-break: break-word; }
+.note { color: var(--muted); font-size: 11px; margin-top: 12px; }

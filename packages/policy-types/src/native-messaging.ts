@@ -55,6 +55,14 @@ export const CollectHistoryMessageSchema = z.object({
   commandId: UuidSchema,
   startTime: IsoDateTimeSchema,
   endTime: IsoDateTimeSchema,
+  /** Present when this is the extension's response. Phase 1 extensions answer `unsupported`. */
+  result: z
+    .object({
+      status: z.enum(['completed', 'unsupported', 'failed']),
+      entryCount: z.number().int().nonnegative().optional(),
+      error: z.string().max(2000).optional(),
+    })
+    .optional(),
 });
 
 export const DiagnosticRequestMessageSchema = z.object({
