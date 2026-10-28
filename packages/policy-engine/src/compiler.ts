@@ -1,7 +1,11 @@
-import {
-  POLICY_SCHEMA_VERSION,
-} from '@bsp/shared';
-import type { CompiledRule, IndicatorType, PolicyPayload, PolicyRuleType, ThreatCategory } from '@bsp/policy-types';
+import { POLICY_SCHEMA_VERSION } from '@bsp/shared';
+import type {
+  CompiledRule,
+  IndicatorType,
+  PolicyPayload,
+  PolicyRuleType,
+  ThreatCategory,
+} from '@bsp/policy-types';
 import { normalizeIndicator } from '@bsp/url-normalizer';
 import { computePolicyChecksum } from './checksum';
 import { bandPriority, type PrecedenceBand } from './precedence';
@@ -84,7 +88,8 @@ const RULE_TYPE_MAP: Record<PolicyRuleType, { type: IndicatorType; action: 'bloc
   ALLOW_URL: { type: 'exact_url', action: 'allow' },
 };
 
-const isLive = (expiresAt: string | null, now: number) => expiresAt === null || Date.parse(expiresAt) > now;
+const isLive = (expiresAt: string | null, now: number) =>
+  expiresAt === null || Date.parse(expiresAt) > now;
 
 /**
  * Pure, deterministic compiler. Identical inputs (including generatedAt and
@@ -136,7 +141,11 @@ export async function compilePolicy(input: CompileInput): Promise<CompileResult>
 
   if (config.includeGlobalThreats) {
     for (const g of input.globalIndicators) {
-      if (g.status !== 'active' || !isLive(g.expiresAt, now) || g.confidence < config.minGlobalConfidence) {
+      if (
+        g.status !== 'active' ||
+        !isLive(g.expiresAt, now) ||
+        g.confidence < config.minGlobalConfidence
+      ) {
         skippedExpiredOrDisabled++;
         continue;
       }

@@ -26,7 +26,8 @@ function manifest(browser) {
     manifest_version: 3,
     name: b.name,
     short_name: 'Browser Security',
-    description: 'Enforces your organization\'s browser security policy. Managed by your IT department.',
+    description:
+      "Enforces your organization's browser security policy. Managed by your IT department.",
     version,
     ...b.minimum,
     ...(release ? {} : { key: devKey }),
@@ -39,7 +40,9 @@ function manifest(browser) {
     host_permissions: ['<all_urls>'],
     action: { default_title: 'Browser Security', default_popup: 'popup.html' },
     web_accessible_resources: [{ resources: ['blocked.html'], matches: ['<all_urls>'] }],
-    content_security_policy: { extension_pages: "script-src 'self'; object-src 'none'; base-uri 'none'" },
+    content_security_policy: {
+      extension_pages: "script-src 'self'; object-src 'none'; base-uri 'none'",
+    },
   };
 }
 
@@ -64,7 +67,12 @@ for (const browser of Object.keys(BROWSERS)) {
     define: { __BROWSER__: JSON.stringify(browser) },
     logLevel: 'warning',
   });
-  for (const f of ['blocked/blocked.html', 'blocked/blocked.css', 'popup/popup.html', 'popup/popup.css']) {
+  for (const f of [
+    'blocked/blocked.html',
+    'blocked/blocked.css',
+    'popup/popup.html',
+    'popup/popup.css',
+  ]) {
     await cp(join(root, 'src', f), join(out, f.split('/')[1]));
   }
   await writeFile(join(out, 'manifest.json'), JSON.stringify(manifest(browser), null, 2) + '\n');

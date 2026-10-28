@@ -8,7 +8,12 @@
  * NOTE: once a migration has been applied to production it must not be edited;
  * catalog changes after go-live are emitted as a new migration with --since.
  */
-import { ALL_PERMISSIONS, ALL_ROLES, PERMISSION_DESCRIPTIONS, permissionScope } from '../packages/auth-permissions/src/index';
+import {
+  ALL_PERMISSIONS,
+  ALL_ROLES,
+  PERMISSION_DESCRIPTIONS,
+  permissionScope,
+} from '../packages/auth-permissions/src/index';
 
 const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
@@ -21,13 +26,17 @@ export function generateRbacSql(): string {
   lines.push('');
   lines.push('insert into public.permissions (key, scope, description) values');
   lines.push(
-    ALL_PERMISSIONS.map((p) => `  (${q(p)}, ${q(permissionScope(p))}, ${q(PERMISSION_DESCRIPTIONS[p])})`).join(',\n') +
+    ALL_PERMISSIONS.map(
+      (p) => `  (${q(p)}, ${q(permissionScope(p))}, ${q(PERMISSION_DESCRIPTIONS[p])})`,
+    ).join(',\n') +
       '\non conflict (key) do update set scope = excluded.scope, description = excluded.description;',
   );
   lines.push('');
   lines.push('insert into public.roles (key, scope, name, description, is_system) values');
   lines.push(
-    ALL_ROLES.map((r) => `  (${q(r.key)}, ${q(r.scope)}, ${q(r.name)}, ${q(r.description)}, true)`).join(',\n') +
+    ALL_ROLES.map(
+      (r) => `  (${q(r.key)}, ${q(r.scope)}, ${q(r.name)}, ${q(r.description)}, true)`,
+    ).join(',\n') +
       '\non conflict (key, organization_id) do update set name = excluded.name, description = excluded.description;',
   );
   lines.push('');
@@ -35,7 +44,10 @@ export function generateRbacSql(): string {
   lines.push('select r.id, v.permission_key from (values');
   const pairs: string[] = [];
   for (const r of ALL_ROLES) {
-    const perms = r.scope === 'platform' ? [...r.permissions, ...r.tenantContextPermissions] : [...r.permissions];
+    const perms =
+      r.scope === 'platform'
+        ? [...r.permissions, ...r.tenantContextPermissions]
+        : [...r.permissions];
     for (const p of perms) pairs.push(`  (${q(r.key)}, ${q(p)})`);
   }
   lines.push(pairs.join(',\n'));

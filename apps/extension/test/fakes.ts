@@ -9,26 +9,68 @@ export const OTHER_ORG = '22222222-2222-4222-8222-222222222222';
 export const EXT_ID = 'ikgimjohebonbmlfdngiiebaadojbdmp';
 export const ORIGIN = `chrome-extension://${EXT_ID}`;
 
-export async function makePolicy(version: number, overrides: Partial<CompileInput> = {}): Promise<PolicyPayload> {
+export async function makePolicy(
+  version: number,
+  overrides: Partial<CompileInput> = {},
+): Promise<PolicyPayload> {
   const { payload } = await compilePolicy({
     organizationId: ORG,
     policyVersion: version,
     generatedAt: '2026-10-28T12:00:00.000Z',
     globalIndicators: [
-      { indicatorType: 'domain', normalizedValue: 'global-malware-test.example', threatCategory: 'malware', confidence: 95, status: 'active', expiresAt: null },
-      { indicatorType: 'domain', normalizedValue: 'false-positive.example', threatCategory: 'phishing', confidence: 99, status: 'active', expiresAt: null },
+      {
+        indicatorType: 'domain',
+        normalizedValue: 'global-malware-test.example',
+        threatCategory: 'malware',
+        confidence: 95,
+        status: 'active',
+        expiresAt: null,
+      },
+      {
+        indicatorType: 'domain',
+        normalizedValue: 'false-positive.example',
+        threatCategory: 'phishing',
+        confidence: 99,
+        status: 'active',
+        expiresAt: null,
+      },
     ],
     tenantRules: [
-      { ruleType: 'BLOCK_DOMAIN', normalizedValue: 'phase1-block-test.example', priority: 100, enabled: true, category: 'custom', expiresAt: null },
-      { ruleType: 'BLOCK_URL', normalizedValue: 'https://cdn.example/evil.exe', priority: 50, enabled: true, category: 'malicious-download', expiresAt: null },
-      { ruleType: 'ALLOW_DOMAIN', normalizedValue: 'false-positive.example', priority: 100, enabled: true, category: 'custom', expiresAt: null },
+      {
+        ruleType: 'BLOCK_DOMAIN',
+        normalizedValue: 'phase1-block-test.example',
+        priority: 100,
+        enabled: true,
+        category: 'custom',
+        expiresAt: null,
+      },
+      {
+        ruleType: 'BLOCK_URL',
+        normalizedValue: 'https://cdn.example/evil.exe',
+        priority: 50,
+        enabled: true,
+        category: 'malicious-download',
+        expiresAt: null,
+      },
+      {
+        ruleType: 'ALLOW_DOMAIN',
+        normalizedValue: 'false-positive.example',
+        priority: 100,
+        enabled: true,
+        category: 'custom',
+        expiresAt: null,
+      },
     ],
     ...overrides,
   });
   return payload;
 }
 
-export const update = (payload: PolicyPayload) => ({ type: 'POLICY_UPDATE', policyVersion: payload.policyVersion, payload });
+export const update = (payload: PolicyPayload) => ({
+  type: 'POLICY_UPDATE',
+  policyVersion: payload.policyVersion,
+  payload,
+});
 
 /** In-memory DNR with Chromium's validation-relevant behaviour (atomic, unique ids). */
 export class FakePlatform implements ExtensionPlatform {
@@ -49,7 +91,13 @@ export class FakePlatform implements ExtensionPlatform {
 
   readonly dnr = {
     getDynamicRules: async () => [...this.rules.values()].map((r) => structuredClone(r)),
-    updateDynamicRules: async ({ removeRuleIds, addRules }: { removeRuleIds: number[]; addRules: DnrRule[] }) => {
+    updateDynamicRules: async ({
+      removeRuleIds,
+      addRules,
+    }: {
+      removeRuleIds: number[];
+      addRules: DnrRule[];
+    }) => {
       this.updateCalls++;
       if (this.failNextUpdate) {
         const msg = this.failNextUpdate;
@@ -81,14 +129,19 @@ export class FakePlatform implements ExtensionPlatform {
  * semantics closely enough to assert enforcement outcomes: highest priority
  * wins; on ties allow > block > redirect.
  */
-export function evaluate(rules: Iterable<DnrRule>, url: string, resourceType: ResourceType = 'main_frame') {
+export function evaluate(
+  rules: Iterable<DnrRule>,
+  url: string,
+  resourceType: ResourceType = 'main_frame',
+) {
   const host = new URL(url).hostname;
   const matches: DnrRule[] = [];
   for (const r of rules) {
     const c = r.condition;
     if (c.resourceTypes && !c.resourceTypes.includes(resourceType)) continue;
     if (c.excludedResourceTypes?.includes(resourceType)) continue;
-    if (c.requestDomains && !c.requestDomains.some((d) => host === d || host.endsWith(`.${d}`))) continue;
+    if (c.requestDomains && !c.requestDomains.some((d) => host === d || host.endsWith(`.${d}`)))
+      continue;
     if (c.regexFilter && !new RegExp(c.regexFilter, 'i').test(url)) continue;
     if (c.urlFilter) {
       const m = /^\|(.*)\|$/.exec(c.urlFilter);
@@ -104,7 +157,10 @@ export function evaluate(rules: Iterable<DnrRule>, url: string, resourceType: Re
     const red = winner.action.redirect;
     const target =
       'regexSubstitution' in red
-        ? url.replace(new RegExp(winner.condition.regexFilter!, 'i'), red.regexSubstitution.replace(/\\0/g, () => '$&'))
+        ? url.replace(
+            new RegExp(winner.condition.regexFilter!, 'i'),
+            red.regexSubstitution.replace(/\\0/g, () => '$&'),
+          )
         : `${ORIGIN}${red.extensionPath}`;
     return { action: 'redirect' as const, target, ruleId: winner.id };
   }

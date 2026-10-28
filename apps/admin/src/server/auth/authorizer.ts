@@ -7,7 +7,13 @@ import {
 } from '@bsp/auth-permissions';
 import { AppError, forbidden, unauthenticated } from '@bsp/shared';
 import { withServiceTx, withUserTx } from '../db';
-import type { PlatformActor, SessionProvider, SessionUser, TenantActor, TenantContext } from './types';
+import type {
+  PlatformActor,
+  SessionProvider,
+  SessionUser,
+  TenantActor,
+  TenantContext,
+} from './types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -40,7 +46,9 @@ export class Authorizer {
     return user;
   }
 
-  async platformAccess(user: SessionUser): Promise<{ roles: string[]; permissions: Set<PlatformPermission> }> {
+  async platformAccess(
+    user: SessionUser,
+  ): Promise<{ roles: string[]; permissions: Set<PlatformPermission> }> {
     return withUserTx(user.id, async (db) => {
       const roles = await db.query<{ key: string }>(
         `select r.key from public.platform_user_roles pur join public.roles r on r.id = pur.role_id
@@ -113,7 +121,9 @@ export class Authorizer {
         `select name, status from public.organizations where id = $1`,
         [organizationId],
       );
-      const perms = await db.query<{ p: string }>(`select public.my_tenant_permissions($1) as p`, [organizationId]);
+      const perms = await db.query<{ p: string }>(`select public.my_tenant_permissions($1) as p`, [
+        organizationId,
+      ]);
       const membership = await db.query<{ key: string }>(
         `select r.key from public.organization_users ou
          join public.organization_user_roles our on our.organization_id = ou.organization_id and our.user_id = ou.user_id
@@ -121,19 +131,25 @@ export class Authorizer {
          where ou.organization_id = $1 and ou.user_id = $2 and ou.status = 'active'`,
         [organizationId, user.id],
       );
-      return { org: org.rows[0], perms: perms.rows.map((r) => r.p), tenantRoles: membership.rows.map((r) => r.key) };
+      return {
+        org: org.rows[0],
+        perms: perms.rows.map((r) => r.p),
+        tenantRoles: membership.rows.map((r) => r.key),
+      };
     });
 
     // Membership and context both yield zero permissions when access is absent;
     // respond NOT_FOUND so ids of other tenants are not confirmable.
-    if (!result.org || result.perms.length === 0) throw new AppError('NOT_FOUND', 'Organization not found');
+    if (!result.org || result.perms.length === 0)
+      throw new AppError('NOT_FOUND', 'Organization not found');
 
     const isMember = result.tenantRoles.length > 0 && result.org.status === 'active';
     let ctx: TenantContext | null = null;
     let platformRoles: string[] = [];
     if (!isMember) {
       ctx = await this.resolveTenantContext();
-      if (!ctx || ctx.organizationId !== organizationId) throw new AppError('NOT_FOUND', 'Organization not found');
+      if (!ctx || ctx.organizationId !== organizationId)
+        throw new AppError('NOT_FOUND', 'Organization not found');
       platformRoles = [...ctx.platformRoles];
     }
 
@@ -150,7 +166,10 @@ export class Authorizer {
     };
   }
 
-  async requireTenantPermission(organizationId: string, permission: TenantPermission): Promise<TenantActor> {
+  async requireTenantPermission(
+    organizationId: string,
+    permission: TenantPermission,
+  ): Promise<TenantActor> {
     const actor = await this.requireTenantMembership(organizationId);
     if (!actor.permissions.has(permission)) throw forbidden();
     return actor;

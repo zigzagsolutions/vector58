@@ -1,5 +1,9 @@
 'use server';
-import { CreateIndicatorRequestSchema, CreateOrganizationRequestSchema, AddTenantUserRequestSchema } from '@bsp/policy-types';
+import {
+  CreateIndicatorRequestSchema,
+  CreateOrganizationRequestSchema,
+  AddTenantUserRequestSchema,
+} from '@bsp/policy-types';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -13,11 +17,17 @@ import { createIndicator, revokeIndicator, syncThreatSource } from '@/server/ser
 import { runAction, str } from './run';
 import type { ActionState } from './state';
 
-export async function createCustomerAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+export async function createCustomerAction(
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
   let id: string | undefined;
   const res = await runAction(async (meta) => {
     const actor = await getAuthorizer().requirePlatformPermission('platform.tenants.manage');
-    const input = parseWith(CreateOrganizationRequestSchema, { name: str(form, 'name'), slug: str(form, 'slug') });
+    const input = parseWith(CreateOrganizationRequestSchema, {
+      name: str(form, 'name'),
+      slug: str(form, 'slug'),
+    });
     id = (await createOrganization(actor, input, meta)).id;
     return { ok: true };
   });
@@ -25,7 +35,10 @@ export async function createCustomerAction(_prev: ActionState, form: FormData): 
   return res;
 }
 
-export async function setCustomerStatusAction(organizationId: string, status: 'active' | 'disabled'): Promise<ActionState> {
+export async function setCustomerStatusAction(
+  organizationId: string,
+  status: 'active' | 'disabled',
+): Promise<ActionState> {
   return runAction(async (meta) => {
     const actor = await getAuthorizer().requirePlatformPermission('platform.tenants.manage');
     await setOrganizationStatus(actor, parseWith(z.uuid(), organizationId), status, meta);
@@ -34,20 +47,42 @@ export async function setCustomerStatusAction(organizationId: string, status: 'a
   });
 }
 
-export async function assignTenantUserAction(organizationId: string, _prev: ActionState, form: FormData): Promise<ActionState> {
+export async function assignTenantUserAction(
+  organizationId: string,
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
   return runAction(async (meta) => {
     const actor = await getAuthorizer().requirePlatformPermission('platform.users.manage');
-    const input = parseWith(AddTenantUserRequestSchema, { email: str(form, 'email'), roleKey: str(form, 'roleKey') });
-    await addTenantUser(actor, parseWith(z.uuid(), organizationId), input, supabaseIdentityDirectory(), meta);
+    const input = parseWith(AddTenantUserRequestSchema, {
+      email: str(form, 'email'),
+      roleKey: str(form, 'roleKey'),
+    });
+    await addTenantUser(
+      actor,
+      parseWith(z.uuid(), organizationId),
+      input,
+      supabaseIdentityDirectory(),
+      meta,
+    );
     revalidatePath(`/platform/customers/${organizationId}`);
     return { ok: true, message: `${input.email} added as ${input.roleKey}` };
   });
 }
 
-export async function enterTenantAction(organizationId: string, _prev: ActionState, form: FormData): Promise<ActionState> {
+export async function enterTenantAction(
+  organizationId: string,
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
   const res = await runAction(async (meta) => {
     const actor = await getAuthorizer().requirePlatformPermission('platform.support.enter_tenant');
-    await enterTenantContext(actor, parseWith(z.uuid(), organizationId), str(form, 'reason') ?? null, meta);
+    await enterTenantContext(
+      actor,
+      parseWith(z.uuid(), organizationId),
+      str(form, 'reason') ?? null,
+      meta,
+    );
     return { ok: true };
   });
   if (res.ok) redirect(`/o/${organizationId}`);
@@ -63,9 +98,14 @@ export async function exitTenantAction(): Promise<void> {
   redirect('/platform');
 }
 
-export async function createIndicatorAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+export async function createIndicatorAction(
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
   return runAction(async (meta) => {
-    const actor = await getAuthorizer().requirePlatformPermission('platform.security.threats.manage');
+    const actor = await getAuthorizer().requirePlatformPermission(
+      'platform.security.threats.manage',
+    );
     const input = parseWith(CreateIndicatorRequestSchema, {
       indicatorType: str(form, 'indicatorType'),
       value: str(form, 'value'),
@@ -75,13 +115,20 @@ export async function createIndicatorAction(_prev: ActionState, form: FormData):
     });
     const r = await createIndicator(actor, input, meta);
     revalidatePath('/platform/threats');
-    return { ok: true, message: r.duplicate ? `${r.normalizedValue} already existed; observation recorded` : `Added ${r.normalizedValue}` };
+    return {
+      ok: true,
+      message: r.duplicate
+        ? `${r.normalizedValue} already existed; observation recorded`
+        : `Added ${r.normalizedValue}`,
+    };
   });
 }
 
 export async function revokeIndicatorAction(indicatorId: string): Promise<ActionState> {
   return runAction(async (meta) => {
-    const actor = await getAuthorizer().requirePlatformPermission('platform.security.threats.manage');
+    const actor = await getAuthorizer().requirePlatformPermission(
+      'platform.security.threats.manage',
+    );
     await revokeIndicator(actor, parseWith(z.uuid(), indicatorId), meta);
     revalidatePath('/platform/threats');
     return { ok: true };
@@ -90,9 +137,14 @@ export async function revokeIndicatorAction(indicatorId: string): Promise<Action
 
 export async function syncFeedAction(sourceId: string): Promise<ActionState> {
   return runAction(async (meta) => {
-    const actor = await getAuthorizer().requirePlatformPermission('platform.security.threats.manage');
+    const actor = await getAuthorizer().requirePlatformPermission(
+      'platform.security.threats.manage',
+    );
     const stats = await syncThreatSource(actor, parseWith(z.uuid(), sourceId), meta);
     revalidatePath('/platform/feeds');
-    return { ok: true, message: `Synced: ${stats.created} new, ${stats.updated} updated, ${stats.invalid} invalid, ${stats.duplicates} duplicates` };
+    return {
+      ok: true,
+      message: `Synced: ${stats.created} new, ${stats.updated} updated, ${stats.invalid} invalid, ${stats.duplicates} duplicates`,
+    };
   });
 }

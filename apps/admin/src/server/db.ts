@@ -27,7 +27,10 @@ export async function closePool(): Promise<void> {
   pool = undefined;
 }
 
-async function tx<T>(setup: (c: pg.PoolClient) => Promise<void>, fn: (db: Db) => Promise<T>): Promise<T> {
+async function tx<T>(
+  setup: (c: pg.PoolClient) => Promise<void>,
+  fn: (db: Db) => Promise<T>,
+): Promise<T> {
   const client = await getPool().connect();
   try {
     await client.query('begin');

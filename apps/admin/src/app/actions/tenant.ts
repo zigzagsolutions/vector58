@@ -16,14 +16,22 @@ import { createEnrollmentToken, revokeEnrollmentToken } from '@/server/services/
 import { supabaseIdentityDirectory } from '@/server/services/identity';
 import { createIncident, issueEndpointCommand } from '@/server/services/incidents';
 import { addRule, publishPolicy, removeRule } from '@/server/services/policies';
-import { addTenantUser, changeTenantUserRole, removeTenantUser } from '@/server/services/tenant-users';
+import {
+  addTenantUser,
+  changeTenantUserRole,
+  removeTenantUser,
+} from '@/server/services/tenant-users';
 import { runAction, str } from './run';
 import type { ActionState } from './state';
 
 const uuid = (v: string) => parseWith(z.uuid(), v);
 const authz = () => getAuthorizer();
 
-export async function addRuleAction(orgId: string, _prev: ActionState, form: FormData): Promise<ActionState> {
+export async function addRuleAction(
+  orgId: string,
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
   return runAction(async (meta) => {
     const actor = await authz().requireTenantPermission(uuid(orgId), 'tenant.policy.write');
     const input = parseWith(CreateRuleRequestSchema, {
@@ -36,7 +44,10 @@ export async function addRuleAction(orgId: string, _prev: ActionState, form: For
     });
     const rule = await addRule(actor, input, meta);
     revalidatePath(`/o/${orgId}`, 'layout');
-    return { ok: true, message: `Added ${rule.ruleType} ${rule.normalizedValue}. Publish the policy to deliver it to endpoints.` };
+    return {
+      ok: true,
+      message: `Added ${rule.ruleType} ${rule.normalizedValue}. Publish the policy to deliver it to endpoints.`,
+    };
   });
 }
 
@@ -54,21 +65,35 @@ export async function publishPolicyAction(orgId: string, policyId: string): Prom
     const actor = await authz().requireTenantPermission(uuid(orgId), 'tenant.policy.publish');
     const r = await publishPolicy(actor, uuid(policyId), meta);
     revalidatePath(`/o/${orgId}`, 'layout');
-    return { ok: true, message: `Published version ${r.versionNumber} (${r.ruleCount} rules, checksum ${r.checksum.slice(0, 12)}…)` };
+    return {
+      ok: true,
+      message: `Published version ${r.versionNumber} (${r.ruleCount} rules, checksum ${r.checksum.slice(0, 12)}…)`,
+    };
   });
 }
 
-export async function addUserAction(orgId: string, _prev: ActionState, form: FormData): Promise<ActionState> {
+export async function addUserAction(
+  orgId: string,
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
   return runAction(async (meta) => {
     const actor = await authz().requireTenantPermission(uuid(orgId), 'tenant.users.write');
-    const input = parseWith(AddTenantUserRequestSchema, { email: str(form, 'email'), roleKey: str(form, 'roleKey') });
+    const input = parseWith(AddTenantUserRequestSchema, {
+      email: str(form, 'email'),
+      roleKey: str(form, 'roleKey'),
+    });
     await addTenantUser(actor, actor.organizationId, input, supabaseIdentityDirectory(), meta);
     revalidatePath(`/o/${orgId}/users`);
     return { ok: true, message: `${input.email} added` };
   });
 }
 
-export async function changeRoleAction(orgId: string, userId: string, roleKey: string): Promise<ActionState> {
+export async function changeRoleAction(
+  orgId: string,
+  userId: string,
+  roleKey: string,
+): Promise<ActionState> {
   return runAction(async (meta) => {
     const actor = await authz().requireTenantPermission(uuid(orgId), 'tenant.users.write');
     await changeTenantUserRole(actor, actor.organizationId, uuid(userId), roleKey, meta);
@@ -86,7 +111,11 @@ export async function removeUserAction(orgId: string, userId: string): Promise<A
   });
 }
 
-export async function createEnrollmentTokenAction(orgId: string, _prev: ActionState, form: FormData): Promise<ActionState> {
+export async function createEnrollmentTokenAction(
+  orgId: string,
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
   return runAction(async (meta) => {
     const actor = await authz().requireTenantPermission(uuid(orgId), 'tenant.devices.manage');
     const input = parseWith(CreateEnrollmentTokenRequestSchema, {
@@ -96,11 +125,18 @@ export async function createEnrollmentTokenAction(orgId: string, _prev: ActionSt
     });
     const t = await createEnrollmentToken(actor, input, meta);
     revalidatePath(`/o/${orgId}/settings`);
-    return { ok: true, message: 'Token created. Copy it now; it will not be shown again.', data: { token: t.token } };
+    return {
+      ok: true,
+      message: 'Token created. Copy it now; it will not be shown again.',
+      data: { token: t.token },
+    };
   });
 }
 
-export async function revokeEnrollmentTokenAction(orgId: string, tokenId: string): Promise<ActionState> {
+export async function revokeEnrollmentTokenAction(
+  orgId: string,
+  tokenId: string,
+): Promise<ActionState> {
   return runAction(async (meta) => {
     const actor = await authz().requireTenantPermission(uuid(orgId), 'tenant.devices.manage');
     await revokeEnrollmentToken(actor, uuid(tokenId), meta);
@@ -109,7 +145,11 @@ export async function revokeEnrollmentTokenAction(orgId: string, tokenId: string
   });
 }
 
-export async function setDeviceStatusAction(orgId: string, deviceId: string, status: 'active' | 'disabled'): Promise<ActionState> {
+export async function setDeviceStatusAction(
+  orgId: string,
+  deviceId: string,
+  status: 'active' | 'disabled',
+): Promise<ActionState> {
   return runAction(async (meta) => {
     const actor = await authz().requireTenantPermission(uuid(orgId), 'tenant.devices.manage');
     await setDeviceStatus(actor, uuid(deviceId), status, meta);
@@ -118,12 +158,18 @@ export async function setDeviceStatusAction(orgId: string, deviceId: string, sta
   });
 }
 
-export async function createIncidentAction(orgId: string, _prev: ActionState, form: FormData): Promise<ActionState> {
+export async function createIncidentAction(
+  orgId: string,
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
   let id: string | undefined;
   const res = await runAction(async (meta) => {
     const actor = await authz().requireTenantPermission(uuid(orgId), 'tenant.incident.create');
     const input = parseWith(CreateIncidentRequestSchema, {
-      title: str(form, 'title'), description: str(form, 'description'), severity: str(form, 'severity'),
+      title: str(form, 'title'),
+      description: str(form, 'description'),
+      severity: str(form, 'severity'),
     });
     id = (await createIncident(actor, input, meta)).id;
     return { ok: true };
@@ -132,17 +178,26 @@ export async function createIncidentAction(orgId: string, _prev: ActionState, fo
   return res;
 }
 
-export async function issueCommandAction(orgId: string, _prev: ActionState, form: FormData): Promise<ActionState> {
+export async function issueCommandAction(
+  orgId: string,
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
   return runAction(async (meta) => {
     const actor = await authz().requireTenantMembership(uuid(orgId));
     const input = parseWith(CreateCommandRequestSchema, {
       deviceId: str(form, 'deviceId'),
       commandType: str(form, 'commandType'),
       incidentId: str(form, 'incidentId'),
-      payload: str(form, 'startTime') ? { startTime: str(form, 'startTime'), endTime: str(form, 'endTime') } : {},
+      payload: str(form, 'startTime')
+        ? { startTime: str(form, 'startTime'), endTime: str(form, 'endTime') }
+        : {},
     });
     await issueEndpointCommand(actor, input, meta);
     revalidatePath(`/o/${orgId}`, 'layout');
-    return { ok: true, message: `${input.commandType} queued. The agent picks it up on its next poll.` };
+    return {
+      ok: true,
+      message: `${input.commandType} queued. The agent picks it up on its next poll.`,
+    };
   });
 }

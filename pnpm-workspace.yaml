@@ -1,7 +1,7 @@
 packages:
-  - "apps/*"
-  - "packages/*"
-  - "tests"
+  - 'apps/*'
+  - 'packages/*'
+  - 'tests'
 onlyBuiltDependencies:
   - esbuild
   - unrs-resolver

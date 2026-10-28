@@ -5,7 +5,13 @@ import { tenantPage } from '@/server/page-guards';
 
 export const dynamic = 'force-dynamic';
 
-export default async function TenantLayout({ children, params }: { children: React.ReactNode; params: Promise<{ orgId: string }> }) {
+export default async function TenantLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ orgId: string }>;
+}) {
   const { orgId } = await params;
   const actor = await tenantPage(orgId);
   const authz = getAuthorizer();
@@ -14,11 +20,19 @@ export default async function TenantLayout({ children, params }: { children: Rea
   return (
     <Shell
       title={actor.organizationName}
-      subtitle={actor.via === 'platform_context' ? `Platform: ${actor.platformRoles.join(', ')}` : actor.tenantRoles.join(', ')}
+      subtitle={
+        actor.via === 'platform_context'
+          ? `Platform: ${actor.platformRoles.join(', ')}`
+          : actor.tenantRoles.join(', ')
+      }
       nav={visibleNav(tenantNav(orgId), actor.permissions)}
       userEmail={actor.user.email}
-      tenantBanner={ctx ? { organizationName: ctx.organizationName, expiresAt: ctx.expiresAt } : null}
-      switcher={orgs.filter((o) => o.id !== orgId).map((o) => ({ href: `/o/${o.id}`, label: o.name }))}
+      tenantBanner={
+        ctx ? { organizationName: ctx.organizationName, expiresAt: ctx.expiresAt } : null
+      }
+      switcher={orgs
+        .filter((o) => o.id !== orgId)
+        .map((o) => ({ href: `/o/${o.id}`, label: o.name }))}
     >
       {children}
     </Shell>

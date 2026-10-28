@@ -19,7 +19,10 @@ export async function enterTenantContext(
   request?: RequestMeta,
 ) {
   return withServiceTx(async (db) => {
-    const org = await db.query<{ name: string }>(`select name from public.organizations where id = $1`, [organizationId]);
+    const org = await db.query<{ name: string }>(
+      `select name from public.organizations where id = $1`,
+      [organizationId],
+    );
     if (!org.rowCount) throw notFound('Organization not found');
     const ended = await db.query<{ id: string; organization_id: string }>(
       `update public.platform_tenant_contexts set ended_at = now()
@@ -28,8 +31,13 @@ export async function enterTenantContext(
     );
     for (const prev of ended.rows) {
       await recordAudit(db, {
-        actor, organizationId: prev.organization_id, action: AuditAction.PLATFORM_ADMIN_EXITED_TENANT,
-        targetType: 'tenant_context', targetId: prev.id, metadata: { reason: 'switched_tenant' }, request,
+        actor,
+        organizationId: prev.organization_id,
+        action: AuditAction.PLATFORM_ADMIN_EXITED_TENANT,
+        targetType: 'tenant_context',
+        targetId: prev.id,
+        metadata: { reason: 'switched_tenant' },
+        request,
       });
     }
     const ctx = await db.query<{ id: string; expires_at: Date }>(
@@ -45,7 +53,11 @@ export async function enterTenantContext(
       targetType: 'organization',
       targetId: organizationId,
       tenantContextId: id,
-      metadata: { reason, expiresAt: ctx.rows[0]!.expires_at.toISOString(), organizationName: org.rows[0]!.name },
+      metadata: {
+        reason,
+        expiresAt: ctx.rows[0]!.expires_at.toISOString(),
+        organizationName: org.rows[0]!.name,
+      },
       request,
     });
     return { contextId: id, organizationId, expiresAt: ctx.rows[0]!.expires_at.toISOString() };
@@ -61,8 +73,12 @@ export async function exitTenantContext(actor: PlatformActor, request?: RequestM
     );
     for (const prev of ended.rows) {
       await recordAudit(db, {
-        actor, organizationId: prev.organization_id, action: AuditAction.PLATFORM_ADMIN_EXITED_TENANT,
-        targetType: 'tenant_context', targetId: prev.id, request,
+        actor,
+        organizationId: prev.organization_id,
+        action: AuditAction.PLATFORM_ADMIN_EXITED_TENANT,
+        targetType: 'tenant_context',
+        targetId: prev.id,
+        request,
       });
     }
     return { ended: ended.rowCount ?? 0 };

@@ -17,7 +17,11 @@ describe('database RBAC matches @bsp/auth-permissions', () => {
     const ts = Object.fromEntries(
       ALL_ROLES.map((r) => [
         r.key,
-        [...(r.scope === 'platform' ? [...r.permissions, ...r.tenantContextPermissions] : r.permissions)].sort(),
+        [
+          ...(r.scope === 'platform'
+            ? [...r.permissions, ...r.tenantContextPermissions]
+            : r.permissions),
+        ].sort(),
       ]),
     );
     expect(db).toEqual(ts);

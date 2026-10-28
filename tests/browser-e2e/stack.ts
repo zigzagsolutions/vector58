@@ -1,5 +1,13 @@
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
-import { chmodSync, createWriteStream, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +19,12 @@ const AGENT_DIR = join(ROOT, 'services/windows-agent');
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function waitFor<T>(what: string, fn: () => Promise<T | null | undefined | false>, timeoutMs = 30_000, everyMs = 250): Promise<T> {
+export async function waitFor<T>(
+  what: string,
+  fn: () => Promise<T | null | undefined | false>,
+  timeoutMs = 30_000,
+  everyMs = 250,
+): Promise<T> {
   const deadline = Date.now() + timeoutMs;
   let last: unknown;
   while (Date.now() < deadline) {
@@ -37,7 +50,11 @@ class Proc {
   start() {
     mkdirSync(ARTIFACTS, { recursive: true });
     const log = createWriteStream(join(ARTIFACTS, `${this.name}.log`), { flags: 'a' });
-    this.child = spawn(this.cmd, this.args, { cwd: this.opts.cwd, env: this.opts.env, stdio: ['ignore', 'pipe', 'pipe'] });
+    this.child = spawn(this.cmd, this.args, {
+      cwd: this.opts.cwd,
+      env: this.opts.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     this.child.stdout!.pipe(log);
     this.child.stderr!.pipe(log);
     return this;
@@ -67,8 +84,10 @@ export class Stack {
 
   checkPrerequisites() {
     const missing: string[] = [];
-    if (!existsSync(join(ROOT, 'apps/admin/.next/BUILD_ID'))) missing.push('admin build (pnpm --filter @bsp/admin build)');
-    if (!existsSync(join(ROOT, 'apps/extension/dist/chrome/manifest.json'))) missing.push('extension build (pnpm --filter @bsp/extension build)');
+    if (!existsSync(join(ROOT, 'apps/admin/.next/BUILD_ID')))
+      missing.push('admin build (pnpm --filter @bsp/admin build)');
+    if (!existsSync(join(ROOT, 'apps/extension/dist/chrome/manifest.json')))
+      missing.push('extension build (pnpm --filter @bsp/extension build)');
     try {
       execFileSync('dotnet', ['--version'], { stdio: 'ignore' });
     } catch {
@@ -78,29 +97,53 @@ export class Stack {
   }
 
   buildAgent() {
-    for (const project of ['src/BrowserSecurity.Agent.Service', 'src/BrowserSecurity.Agent.NativeMessaging']) {
-      execFileSync('dotnet', ['build', project, '-c', 'Debug', '--nologo', '-v', 'q'], { cwd: AGENT_DIR, stdio: 'inherit' });
+    for (const project of [
+      'src/BrowserSecurity.Agent.Service',
+      'src/BrowserSecurity.Agent.NativeMessaging',
+    ]) {
+      execFileSync('dotnet', ['build', project, '-c', 'Debug', '--nologo', '-v', 'q'], {
+        cwd: AGENT_DIR,
+        stdio: 'inherit',
+      });
     }
   }
 
-  agentDll = () => join(AGENT_DIR, 'src/BrowserSecurity.Agent.Service/bin/Debug/net10.0/BrowserSecurity.Agent.Service.dll');
-  hostDll = () => join(AGENT_DIR, 'src/BrowserSecurity.Agent.NativeMessaging/bin/Debug/net10.0/BrowserSecurity.NativeHost.dll');
+  agentDll = () =>
+    join(
+      AGENT_DIR,
+      'src/BrowserSecurity.Agent.Service/bin/Debug/net10.0/BrowserSecurity.Agent.Service.dll',
+    );
+  hostDll = () =>
+    join(
+      AGENT_DIR,
+      'src/BrowserSecurity.Agent.NativeMessaging/bin/Debug/net10.0/BrowserSecurity.NativeHost.dll',
+    );
 
   async startWeb() {
-    this.web = new Proc('web', join(ROOT, 'apps/admin/node_modules/.bin/next'), ['start', '-p', String(this.port)], {
-      cwd: join(ROOT, 'apps/admin'),
-      env: {
-        ...process.env,
-        NODE_ENV: 'production',
-        DATABASE_URL: this.databaseUrl,
-        NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:9',
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'e2e-not-used',
-        NEXT_PUBLIC_APP_BASE_URL: this.baseUrl,
-        TRUSTED_PROXY_MODE: 'none',
-        CRON_SECRET: 'e2e-cron-secret-0123456789abcdef0123456789',
+    this.web = new Proc(
+      'web',
+      join(ROOT, 'apps/admin/node_modules/.bin/next'),
+      ['start', '-p', String(this.port)],
+      {
+        cwd: join(ROOT, 'apps/admin'),
+        env: {
+          ...process.env,
+          NODE_ENV: 'production',
+          DATABASE_URL: this.databaseUrl,
+          NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:9',
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'e2e-not-used',
+          NEXT_PUBLIC_APP_BASE_URL: this.baseUrl,
+          TRUSTED_PROXY_MODE: 'none',
+          CRON_SECRET: 'e2e-cron-secret-0123456789abcdef0123456789',
+        },
       },
-    }).start();
-    await waitFor('web server', async () => (await fetch(`${this.baseUrl}/api/v1/health`)).ok, 60_000, 500);
+    ).start();
+    await waitFor(
+      'web server',
+      async () => (await fetch(`${this.baseUrl}/api/v1/health`)).ok,
+      60_000,
+      500,
+    );
   }
 
   writeEnrollmentToken(token: string) {
@@ -133,7 +176,10 @@ export class Stack {
   /** Chromium's per-profile native messaging manifest, pointing at a wrapper that runs the .NET host. */
   installNativeHost(userDataDir: string) {
     const wrapper = join(this.work, 'native-host.sh');
-    writeFileSync(wrapper, `#!/bin/sh\nexport BSP_AGENT_BROWSER_PIPE='${this.browserPipe}'\nexec dotnet '${this.hostDll()}' "$@"\n`);
+    writeFileSync(
+      wrapper,
+      `#!/bin/sh\nexport BSP_AGENT_BROWSER_PIPE='${this.browserPipe}'\nexec dotnet '${this.hostDll()}' "$@"\n`,
+    );
     chmodSync(wrapper, 0o755);
     mkdirSync(join(userDataDir, 'NativeMessagingHosts'), { recursive: true });
     writeFileSync(

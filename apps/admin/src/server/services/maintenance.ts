@@ -19,7 +19,9 @@ export async function runMaintenance() {
 /** Sync every enabled automated feed; failures are isolated per source. */
 export async function syncAllFeeds() {
   const sources = await withServiceTx((db) =>
-    db.query<{ id: string; name: string }>(`select id, name from public.threat_sources where enabled and source_type <> 'manual'`),
+    db.query<{ id: string; name: string }>(
+      `select id, name from public.threat_sources where enabled and source_type <> 'manual'`,
+    ),
   );
   const results: Record<string, unknown> = {};
   for (const s of sources.rows) {

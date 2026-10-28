@@ -42,7 +42,10 @@ export type TenantPermission = (typeof TENANT_PERMISSIONS)[number];
 export type Permission = PlatformPermission | TenantPermission;
 export type PermissionScope = 'platform' | 'tenant';
 
-export const ALL_PERMISSIONS: readonly Permission[] = [...PLATFORM_PERMISSIONS, ...TENANT_PERMISSIONS];
+export const ALL_PERMISSIONS: readonly Permission[] = [
+  ...PLATFORM_PERMISSIONS,
+  ...TENANT_PERMISSIONS,
+];
 
 export const PERMISSION_DESCRIPTIONS: Readonly<Record<Permission, string>> = {
   'platform.tenants.read': 'View all customer tenants',

@@ -17,7 +17,15 @@ const payload = {
   generatedAt: '2026-10-28T12:00:00.000Z',
   checksum: 'a'.repeat(64),
   rules: [
-    { id: 10001, type: 'domain', value: 'bad-domain.example', action: 'block', category: 'phishing', priority: 100, source: 'tenant' },
+    {
+      id: 10001,
+      type: 'domain',
+      value: 'bad-domain.example',
+      action: 'block',
+      category: 'phishing',
+      priority: 100,
+      source: 'tenant',
+    },
   ],
 };
 
@@ -29,7 +37,8 @@ describe('PolicyPayloadSchema', () => {
     expect(PolicyPayloadSchema.safeParse({ ...payload, schemaVersion: 2 }).success).toBe(false);
     expect(PolicyPayloadSchema.safeParse({ ...payload, checksum: 'xyz' }).success).toBe(false);
     expect(
-      PolicyPayloadSchema.safeParse({ ...payload, rules: [payload.rules[0], payload.rules[0]] }).success,
+      PolicyPayloadSchema.safeParse({ ...payload, rules: [payload.rules[0], payload.rules[0]] })
+        .success,
     ).toBe(false);
   });
   it('rejects rule ids outside the DNR-safe range', () => {
@@ -44,7 +53,9 @@ describe('NativeMessageSchema', () => {
     expect(r.success).toBe(true);
   });
   it('rejects unknown message types', () => {
-    expect(NativeMessageSchema.safeParse({ type: 'RUN_SHELL', cmd: 'calc.exe' }).success).toBe(false);
+    expect(NativeMessageSchema.safeParse({ type: 'RUN_SHELL', cmd: 'calc.exe' }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -61,20 +72,38 @@ describe('device API schemas', () => {
     expect('organizationId' in r).toBe(false);
   });
   it('heartbeat defaults browser clients', () => {
-    const r = AgentHeartbeatSchema.parse({ hostname: 'h', osVersion: 'o', agentVersion: '1', policyVersion: null });
+    const r = AgentHeartbeatSchema.parse({
+      hostname: 'h',
+      osVersion: 'o',
+      agentVersion: '1',
+      policyVersion: null,
+    });
     expect(r.browserClients).toEqual([]);
   });
   it('event batch caps size', () => {
     expect(SecurityEventBatchSchema.safeParse({ events: [] }).success).toBe(false);
   });
   it('rule requests validate rule types', () => {
-    expect(CreateRuleRequestSchema.safeParse({ ruleType: 'BLOCK_EVERYTHING', value: 'x' }).success).toBe(false);
-    expect(CreateRuleRequestSchema.parse({ ruleType: 'BLOCK_DOMAIN', value: 'x.example' }).category).toBe('custom');
+    expect(
+      CreateRuleRequestSchema.safeParse({ ruleType: 'BLOCK_EVERYTHING', value: 'x' }).success,
+    ).toBe(false);
+    expect(
+      CreateRuleRequestSchema.parse({ ruleType: 'BLOCK_DOMAIN', value: 'x.example' }).category,
+    ).toBe('custom');
   });
   it('history collection must be bounded', () => {
     const base = { incidentId: ORG, approvedBy: ORG, startTime: '2026-10-01T00:00:00Z' };
-    expect(CollectBrowserHistoryPayloadSchema.safeParse({ ...base, endTime: '2026-10-02T00:00:00Z' }).success).toBe(true);
-    expect(CollectBrowserHistoryPayloadSchema.safeParse({ ...base, endTime: '2026-10-30T00:00:00Z' }).success).toBe(false);
-    expect(CollectBrowserHistoryPayloadSchema.safeParse({ ...base, endTime: '2026-09-30T00:00:00Z' }).success).toBe(false);
+    expect(
+      CollectBrowserHistoryPayloadSchema.safeParse({ ...base, endTime: '2026-10-02T00:00:00Z' })
+        .success,
+    ).toBe(true);
+    expect(
+      CollectBrowserHistoryPayloadSchema.safeParse({ ...base, endTime: '2026-10-30T00:00:00Z' })
+        .success,
+    ).toBe(false);
+    expect(
+      CollectBrowserHistoryPayloadSchema.safeParse({ ...base, endTime: '2026-09-30T00:00:00Z' })
+        .success,
+    ).toBe(false);
   });
 });

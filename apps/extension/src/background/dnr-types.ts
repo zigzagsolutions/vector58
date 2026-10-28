@@ -3,12 +3,38 @@
  * stays pure and unit-testable outside a browser.
  */
 export type ResourceType =
-  | 'main_frame' | 'sub_frame' | 'stylesheet' | 'script' | 'image' | 'font' | 'object' | 'xmlhttprequest'
-  | 'ping' | 'csp_report' | 'media' | 'websocket' | 'webtransport' | 'webbundle' | 'other';
+  | 'main_frame'
+  | 'sub_frame'
+  | 'stylesheet'
+  | 'script'
+  | 'image'
+  | 'font'
+  | 'object'
+  | 'xmlhttprequest'
+  | 'ping'
+  | 'csp_report'
+  | 'media'
+  | 'websocket'
+  | 'webtransport'
+  | 'webbundle'
+  | 'other';
 
 export const ALL_RESOURCE_TYPES: ResourceType[] = [
-  'main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest',
-  'ping', 'csp_report', 'media', 'websocket', 'webtransport', 'webbundle', 'other',
+  'main_frame',
+  'sub_frame',
+  'stylesheet',
+  'script',
+  'image',
+  'font',
+  'object',
+  'xmlhttprequest',
+  'ping',
+  'csp_report',
+  'media',
+  'websocket',
+  'webtransport',
+  'webbundle',
+  'other',
 ];
 
 export interface DnrRule {

@@ -46,13 +46,15 @@ const map = (a: Record<string, unknown>): AuditRow => ({
 });
 
 /** Tenant audit log (RLS: tenant.audit.read, own organization only). */
-export async function listTenantAudit(actor: TenantActor, filters: { action?: string; limit?: number } = {}) {
+export async function listTenantAudit(
+  actor: TenantActor,
+  filters: { action?: string; limit?: number } = {},
+) {
   const r = await withUserTx(actor.user.id, (db) =>
-    db.query(`${SELECT} where a.organization_id = $1 and ($2::text is null or a.action = $2) order by a.occurred_at desc limit $3`, [
-      actor.organizationId,
-      filters.action ?? null,
-      filters.limit ?? 200,
-    ]),
+    db.query(
+      `${SELECT} where a.organization_id = $1 and ($2::text is null or a.action = $2) order by a.occurred_at desc limit $3`,
+      [actor.organizationId, filters.action ?? null, filters.limit ?? 200],
+    ),
   );
   return r.rows.map(map);
 }
@@ -67,7 +69,12 @@ export async function listPlatformAudit(
       `${SELECT} where ($1::uuid is null or a.organization_id = $1) and ($2::text is null or a.action = $2)
          and ($3::text is null or a.actor_scope = $3)
        order by a.occurred_at desc limit $4`,
-      [filters.organizationId ?? null, filters.action ?? null, filters.scope ?? null, filters.limit ?? 300],
+      [
+        filters.organizationId ?? null,
+        filters.action ?? null,
+        filters.scope ?? null,
+        filters.limit ?? 300,
+      ],
     ),
   );
   return r.rows.map(map);

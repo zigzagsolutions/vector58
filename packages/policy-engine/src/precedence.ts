@@ -34,7 +34,9 @@ export interface DecisionRule {
   readonly priority: number;
 }
 
-export function decide<R extends DecisionRule>(matching: readonly R[]): { action: 'block' | 'allow'; rule: R | null } {
+export function decide<R extends DecisionRule>(
+  matching: readonly R[],
+): { action: 'block' | 'allow'; rule: R | null } {
   let winner: R | null = null;
   for (const r of matching) {
     if (

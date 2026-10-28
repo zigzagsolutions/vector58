@@ -37,7 +37,9 @@ export const supabaseSessionProvider: SessionProvider = {
     const supabase = await createSupabaseServerClient();
     const auth = (await headers()).get('authorization');
     const bearer = auth?.match(/^Bearer\s+(.+)$/i)?.[1];
-    const { data, error } = bearer ? await supabase.auth.getUser(bearer) : await supabase.auth.getUser();
+    const { data, error } = bearer
+      ? await supabase.auth.getUser(bearer)
+      : await supabase.auth.getUser();
     if (error || !data.user) return null;
     return { id: data.user.id, email: data.user.email ?? null };
   },

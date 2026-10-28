@@ -43,7 +43,10 @@ export interface ConvertResult {
   readonly regexRuleCount: number;
 }
 
-export function convertPolicyRules(rules: readonly CompiledRule[], opts: ConvertOptions): ConvertResult {
+export function convertPolicyRules(
+  rules: readonly CompiledRule[],
+  opts: ConvertOptions,
+): ConvertResult {
   const budget = opts.regexBudget ?? DEFAULT_REGEX_BUDGET;
   let regexUsed = 0;
   const out: DnrRule[] = [];
@@ -74,11 +77,17 @@ export function convertPolicyRules(rules: readonly CompiledRule[], opts: Convert
       priority: r.priority,
       action: {
         type: 'redirect',
-        redirect: useRegex ? { regexSubstitution: `${blockPage}#\\0` } : { extensionPath: `${BLOCK_PAGE_PATH}?r=${r.id}` },
+        redirect: useRegex
+          ? { regexSubstitution: `${blockPage}#\\0` }
+          : { extensionPath: `${BLOCK_PAGE_PATH}?r=${r.id}` },
       },
       condition:
         r.type === 'domain'
-          ? { requestDomains: [r.value], ...(useRegex ? { regexFilter: regex } : {}), resourceTypes: ['main_frame'] }
+          ? {
+              requestDomains: [r.value],
+              ...(useRegex ? { regexFilter: regex } : {}),
+              resourceTypes: ['main_frame'],
+            }
           : { regexFilter: regex, resourceTypes: ['main_frame'] },
     });
 

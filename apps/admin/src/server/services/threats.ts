@@ -12,7 +12,10 @@ import { PROVIDERS } from '../threat-feeds/providers';
 
 const DEFAULT_TTL_DAYS = 30;
 
-export async function listIndicators(actor: PlatformActor, filters: { q?: string; status?: string; limit?: number } = {}) {
+export async function listIndicators(
+  actor: PlatformActor,
+  filters: { q?: string; status?: string; limit?: number } = {},
+) {
   const r = await withUserTx(actor.user.id, (db) =>
     db.query(
       `select id, indicator_type, normalized_value, threat_category, confidence, severity, source, first_seen, last_seen,
@@ -40,7 +43,14 @@ export async function listIndicators(actor: PlatformActor, filters: { q?: string
 }
 
 /** Upsert an indicator by normalized hash and append an observation (shared by manual entry and feeds). */
-async function upsertIndicator(db: Db, sourceId: string, sourceName: string, p: ProcessedIndicator, ttlDays: number, severity = 'high') {
+async function upsertIndicator(
+  db: Db,
+  sourceId: string,
+  sourceName: string,
+  p: ProcessedIndicator,
+  ttlDays: number,
+  severity = 'high',
+) {
   const r = await db.query<{ id: string; inserted: boolean }>(
     `insert into public.threat_indicators (indicator_type, normalized_value, normalized_hash, hostname, threat_category,
                                            confidence, severity, source, first_seen, last_seen, expires_at, status)
@@ -51,7 +61,18 @@ async function upsertIndicator(db: Db, sourceId: string, sourceName: string, p: 
        expires_at = greatest(threat_indicators.expires_at, excluded.expires_at),
        status = case when threat_indicators.status = 'revoked' then 'revoked' else 'active' end
      returning id, (xmax = 0) as inserted`,
-    [p.type, p.value, p.hash, p.hostname, p.category, p.confidence, severity, sourceName, p.observedAt, ttlDays],
+    [
+      p.type,
+      p.value,
+      p.hash,
+      p.hostname,
+      p.category,
+      p.confidence,
+      severity,
+      sourceName,
+      p.observedAt,
+      ttlDays,
+    ],
   );
   const row = r.rows[0]!;
   await db.query(
@@ -62,9 +83,17 @@ async function upsertIndicator(db: Db, sourceId: string, sourceName: string, p: 
   return row;
 }
 
-export async function createIndicator(actor: PlatformActor, input: CreateIndicatorRequest, request?: RequestMeta) {
+export async function createIndicator(
+  actor: PlatformActor,
+  input: CreateIndicatorRequest,
+  request?: RequestMeta,
+) {
   const n = normalizeIndicator(input.indicatorType, input.value);
-  if (!n.ok) throw new AppError('VALIDATION_FAILED', n.error.message, { code: n.error.code, field: 'value' });
+  if (!n.ok)
+    throw new AppError('VALIDATION_FAILED', n.error.message, {
+      code: n.error.code,
+      field: 'value',
+    });
   const processed: ProcessedIndicator = {
     type: input.indicatorType,
     value: n.value.value,
@@ -76,7 +105,9 @@ export async function createIndicator(actor: PlatformActor, input: CreateIndicat
     observedAt: new Date().toISOString(),
   };
   return withServiceTx(async (db) => {
-    const src = await db.query<{ id: string; name: string }>(`select id, name from public.threat_sources where source_type = 'manual' order by created_at limit 1`);
+    const src = await db.query<{ id: string; name: string }>(
+      `select id, name from public.threat_sources where source_type = 'manual' order by created_at limit 1`,
+    );
     let source = src.rows[0];
     if (!source) {
       const c = await db.query<{ id: string; name: string }>(
@@ -84,23 +115,47 @@ export async function createIndicator(actor: PlatformActor, input: CreateIndicat
       );
       source = c.rows[0]!;
     }
-    const ttl = input.expiresAt ? Math.max(1, Math.ceil((Date.parse(input.expiresAt) - Date.now()) / 8.64e7)) : 365;
+    const ttl = input.expiresAt
+      ? Math.max(1, Math.ceil((Date.parse(input.expiresAt) - Date.now()) / 8.64e7))
+      : 365;
     const row = await upsertIndicator(db, source.id, source.name, processed, ttl, input.severity);
     await recordAudit(db, {
-      actor, organizationId: null, action: AuditAction.THREAT_INDICATOR_CREATED, targetType: 'threat_indicator', targetId: row.id,
-      metadata: { value: processed.value, type: processed.type, category: processed.category, duplicate: !row.inserted }, request,
+      actor,
+      organizationId: null,
+      action: AuditAction.THREAT_INDICATOR_CREATED,
+      targetType: 'threat_indicator',
+      targetId: row.id,
+      metadata: {
+        value: processed.value,
+        type: processed.type,
+        category: processed.category,
+        duplicate: !row.inserted,
+      },
+      request,
     });
     return { id: row.id, duplicate: !row.inserted, normalizedValue: processed.value };
   });
 }
 
-export async function revokeIndicator(actor: PlatformActor, indicatorId: string, request?: RequestMeta) {
+export async function revokeIndicator(
+  actor: PlatformActor,
+  indicatorId: string,
+  request?: RequestMeta,
+) {
   return withServiceTx(async (db) => {
-    const r = await db.query(`update public.threat_indicators set status = 'revoked' where id = $1 returning normalized_value`, [indicatorId]);
+    const r = await db.query(
+      `update public.threat_indicators set status = 'revoked' where id = $1 returning normalized_value`,
+      [indicatorId],
+    );
     if (!r.rowCount) throw notFound('Indicator not found');
     await recordAudit(db, {
-      actor, organizationId: null, action: AuditAction.THREAT_INDICATOR_REVOKED, targetType: 'threat_indicator', targetId: indicatorId,
-      metadata: { value: r.rows[0].normalized_value }, request,
+      actor,
+      organizationId: null,
+      action: AuditAction.THREAT_INDICATOR_REVOKED,
+      targetType: 'threat_indicator',
+      targetId: indicatorId,
+      metadata: { value: r.rows[0].normalized_value },
+      request,
     });
   });
 }
@@ -130,7 +185,10 @@ export async function listThreatSources(actor: PlatformActor) {
 /** Run one feed end-to-end: fetch -> validate -> normalize -> dedupe -> score -> store -> update -> expire. */
 export async function syncThreatSource(actor: Actor, sourceId: string, request?: RequestMeta) {
   const src = await withServiceTx(async (db) => {
-    const r = await db.query(`update public.threat_sources set sync_status = 'running' where id = $1 returning *`, [sourceId]);
+    const r = await db.query(
+      `update public.threat_sources set sync_status = 'running' where id = $1 returning *`,
+      [sourceId],
+    );
     return r.rows[0];
   });
   if (!src) throw notFound('Threat source not found');
@@ -138,7 +196,11 @@ export async function syncThreatSource(actor: Actor, sourceId: string, request?:
   try {
     if (!provider) throw new FeedNotConfiguredError(src.source_type);
     if (!src.enabled) throw new AppError('CONFLICT', 'Threat source is disabled');
-    const raw = await provider.fetch({ lastSync: src.last_sync, config: src.config ?? {}, signal: AbortSignal.timeout(30_000) });
+    const raw = await provider.fetch({
+      lastSync: src.last_sync,
+      config: src.config ?? {},
+      signal: AbortSignal.timeout(30_000),
+    });
     return await withServiceTx(async (db) => {
       const safe = await db.query<{ normalized_value: string }>(
         `select normalized_value from public.allowlist_entries where organization_id is null and entry_type = 'domain'`,
@@ -158,28 +220,43 @@ export async function syncThreatSource(actor: Actor, sourceId: string, request?:
       }
       const expired = await expireStaleIndicators(db);
       const stats = {
-        fetched: report.fetched, invalid: report.invalid, duplicates: report.duplicates,
-        suppressed: report.suppressedBySafeList, created, updated, expired,
+        fetched: report.fetched,
+        invalid: report.invalid,
+        duplicates: report.duplicates,
+        suppressed: report.suppressedBySafeList,
+        created,
+        updated,
+        expired,
       };
       await db.query(
         `update public.threat_sources set sync_status = 'succeeded', last_sync = now(), last_error = null, last_stats = $2 where id = $1`,
         [src.id, JSON.stringify(stats)],
       );
       await recordAudit(db, {
-        actor, organizationId: null, action: AuditAction.THREAT_FEED_SYNCED, targetType: 'threat_source', targetId: src.id,
-        metadata: stats, request,
+        actor,
+        organizationId: null,
+        action: AuditAction.THREAT_FEED_SYNCED,
+        targetType: 'threat_source',
+        targetId: src.id,
+        metadata: stats,
+        request,
       });
       return stats;
     });
   } catch (e) {
     await withServiceTx((db) =>
-      db.query(`update public.threat_sources set sync_status = 'failed', last_error = $2 where id = $1`, [sourceId, String((e as Error).message ?? e).slice(0, 1000)]),
+      db.query(
+        `update public.threat_sources set sync_status = 'failed', last_error = $2 where id = $1`,
+        [sourceId, String((e as Error).message ?? e).slice(0, 1000)],
+      ),
     );
     throw e;
   }
 }
 
 export async function expireStaleIndicators(db: Db): Promise<number> {
-  const r = await db.query(`update public.threat_indicators set status = 'expired' where status = 'active' and expires_at <= now()`);
+  const r = await db.query(
+    `update public.threat_indicators set status = 'expired' where status = 'active' and expires_at <= now()`,
+  );
   return r.rowCount ?? 0;
 }

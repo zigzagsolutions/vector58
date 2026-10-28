@@ -78,7 +78,11 @@ export type HeartbeatResponse = z.infer<typeof HeartbeatResponseSchema>;
 
 export const DevicePolicyResponseSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('current'), policyVersion: z.number().int().nullable() }),
-  z.object({ status: z.literal('updated'), policyVersion: z.number().int(), payload: PolicyPayloadSchema }),
+  z.object({
+    status: z.literal('updated'),
+    policyVersion: z.number().int(),
+    payload: PolicyPayloadSchema,
+  }),
   z.object({ status: z.literal('none') }),
 ]);
 export type DevicePolicyResponse = z.infer<typeof DevicePolicyResponseSchema>;
@@ -180,7 +184,12 @@ export const CreateCommandRequestSchema = z.object({
 export const CreateEnrollmentTokenRequestSchema = z.object({
   description: z.string().trim().max(200).optional(),
   maxUses: z.number().int().min(1).max(100_000).default(25),
-  expiresInHours: z.number().int().min(1).max(24 * 90).default(72),
+  expiresInHours: z
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 90)
+    .default(72),
 });
 
 /** Standard API envelope for errors. */

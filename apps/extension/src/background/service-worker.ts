@@ -31,7 +31,10 @@ const controller = new ExtensionController({
     void chrome.action.setBadgeText({ text: s === 'ok' ? '' : '!' });
     void chrome.action.setBadgeBackgroundColor({ color: '#b45309' });
     void chrome.action.setTitle({
-      title: s === 'ok' ? 'Browser Security: protected' : 'Browser Security: degraded (agent unreachable, last policy enforced)',
+      title:
+        s === 'ok'
+          ? 'Browser Security: protected'
+          : 'Browser Security: degraded (agent unreachable, last policy enforced)',
     });
   },
   schedule: (fn, ms) => setTimeout(fn, ms),
@@ -49,7 +52,9 @@ chrome.alarms.onAlarm.addListener((a) => {
 chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
   const m = message as { type?: string } | null;
   if (m?.type === 'BLOCK_PAGE_REPORT') {
-    void controller.onBlockPageReport(message as BlockReportMessage, sender, chrome.runtime.id).then(sendResponse);
+    void controller
+      .onBlockPageReport(message as BlockReportMessage, sender, chrome.runtime.id)
+      .then(sendResponse);
     return true;
   }
   if (m?.type === 'GET_STATUS' && sender.id === chrome.runtime.id) {

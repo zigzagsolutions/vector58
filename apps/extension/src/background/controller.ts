@@ -1,4 +1,10 @@
-import { NATIVE_PROTOCOL_VERSION, NativeMessageSchema, type NativeMessage, type ReportedSecurityEvent, type SecurityEventType } from '@bsp/policy-types';
+import {
+  NATIVE_PROTOCOL_VERSION,
+  NativeMessageSchema,
+  type NativeMessage,
+  type ReportedSecurityEvent,
+  type SecurityEventType,
+} from '@bsp/policy-types';
 import { applyPolicyUpdate } from './policy-applier';
 import { buildUrlBlockedEvent, ReportDeduper, type ClientInfo } from './block-report';
 import { reconnectDelayMs, type NativeConnector, type NativePort } from './native-port';
@@ -92,7 +98,10 @@ export class ExtensionController {
     const wasConnected = this.connected;
     this.port = null;
     this.connected = false;
-    await this.state.updateHealth({ nativeConnected: false, lastError: error ?? 'Native host disconnected' });
+    await this.state.updateHealth({
+      nativeConnected: false,
+      lastError: error ?? 'Native host disconnected',
+    });
     this.deps.setBadge?.('degraded');
     // Queued and delivered when the host comes back. Rules stay in force.
     if (wasConnected) await this.emit('EXTENSION_DISCONNECTED', { error });
@@ -124,20 +133,33 @@ export class ExtensionController {
     if (type === 'POLICY_UPDATE') {
       // Validated in depth (schema + checksum + rollback) by the applier.
       const outcome = await applyPolicyUpdate(raw, this.deps.platform, this.state);
-      await this.state.updateHealth({ lastPolicyStatus: outcome.status.status, ...(outcome.error ? { lastError: outcome.error } : {}) });
+      await this.state.updateHealth({
+        lastPolicyStatus: outcome.status.status,
+        ...(outcome.error ? { lastError: outcome.error } : {}),
+      });
       this.post(outcome.status);
       if (outcome.status.status === 'applied') {
-        await this.emit('POLICY_APPLIED', { ruleCount: outcome.status.ruleCount }, outcome.status.policyVersion);
+        await this.emit(
+          'POLICY_APPLIED',
+          { ruleCount: outcome.status.ruleCount },
+          outcome.status.policyVersion,
+        );
         this.post({ type: 'CLIENT_HEALTH', client: await this.clientSnapshot() });
       } else if (outcome.status.status === 'failed') {
-        await this.emit('POLICY_FAILED', { error: outcome.error ?? 'unknown' }, outcome.status.policyVersion);
+        await this.emit(
+          'POLICY_FAILED',
+          { error: outcome.error ?? 'unknown' },
+          outcome.status.policyVersion,
+        );
       }
       return;
     }
 
     const parsed = NativeMessageSchema.safeParse(raw);
     if (!parsed.success) {
-      await this.state.updateHealth({ lastError: `Ignored invalid native message (${String(type)})` });
+      await this.state.updateHealth({
+        lastError: `Ignored invalid native message (${String(type)})`,
+      });
       return;
     }
     const msg = parsed.data;
@@ -145,7 +167,13 @@ export class ExtensionController {
       case 'COLLECT_HISTORY':
         // Phase 1: the extension does not read browsing history. The agent
         // records the command as NOT_SUPPORTED. See docs/incident-response.md.
-        this.post({ ...msg, result: { status: 'unsupported', error: 'History collection is not supported in Phase 1' } });
+        this.post({
+          ...msg,
+          result: {
+            status: 'unsupported',
+            error: 'History collection is not supported in Phase 1',
+          },
+        });
         return;
       case 'DIAGNOSTIC_REQUEST': {
         const policy = await this.state.getPolicy();
@@ -178,11 +206,21 @@ export class ExtensionController {
    * and the report is re-validated against the applied policy. Returns the
    * verified details the page may display, or null.
    */
-  async onBlockPageReport(message: unknown, sender: MessageSenderLike, extensionId: string): Promise<BlockReportResult | null> {
+  async onBlockPageReport(
+    message: unknown,
+    sender: MessageSenderLike,
+    extensionId: string,
+  ): Promise<BlockReportResult | null> {
     const pageUrl = `${this.deps.platform.extensionOrigin}${BLOCK_PAGE_PATH}`;
     if (sender.id !== extensionId || !sender.url?.startsWith(pageUrl)) return null;
     const m = message as Partial<BlockReportMessage> | null;
-    if (!m || m.type !== 'BLOCK_PAGE_REPORT' || !Number.isInteger(m.ruleId) || (m.url !== null && typeof m.url !== 'string')) return null;
+    if (
+      !m ||
+      m.type !== 'BLOCK_PAGE_REPORT' ||
+      !Number.isInteger(m.ruleId) ||
+      (m.url !== null && typeof m.url !== 'string')
+    )
+      return null;
     const now = this.deps.platform.now();
     const event = buildUrlBlockedEvent(
       { ruleId: m.ruleId as number, url: m.url ? m.url.slice(0, 2048) : null },
@@ -193,11 +231,20 @@ export class ExtensionController {
     );
     if (!event) return null;
     // Reloading the block page must not inflate the event count.
-    if (this.deduper.shouldReport(`${event.ruleId}|${event.url ?? ''}`, now.getTime())) await this.send(event);
-    return { domain: event.domain ?? null, category: event.threatCategory ?? null, ruleId: event.ruleId ?? null };
+    if (this.deduper.shouldReport(`${event.ruleId}|${event.url ?? ''}`, now.getTime()))
+      await this.send(event);
+    return {
+      domain: event.domain ?? null,
+      category: event.threatCategory ?? null,
+      ruleId: event.ruleId ?? null,
+    };
   }
 
-  async emit(eventType: SecurityEventType, details: Record<string, unknown>, policyVersion?: number | null) {
+  async emit(
+    eventType: SecurityEventType,
+    details: Record<string, unknown>,
+    policyVersion?: number | null,
+  ) {
     const c = await this.clientInfo();
     await this.send({
       eventId: this.deps.platform.randomId(),

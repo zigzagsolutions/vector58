@@ -36,7 +36,10 @@ beforeEach(() => {
 
 const port = () => ports.at(-1)!;
 const events = (p: FakePort, type?: string) =>
-  p.ofType('SECURITY_EVENT').map((m) => (m as { event: { eventType: string } }).event).filter((e) => !type || e.eventType === type);
+  p
+    .ofType('SECURITY_EVENT')
+    .map((m) => (m as { event: { eventType: string } }).event)
+    .filter((e) => !type || e.eventType === type);
 
 describe('ExtensionController', () => {
   it('announces itself on connect and every outgoing message matches the shared protocol schema', async () => {
@@ -84,8 +87,14 @@ describe('ExtensionController', () => {
     expect((await controller.state.health()).nativeConnected).toBe(false);
 
     // A block happens while the agent is unreachable.
-    const ruleId = (await makePolicy(1)).rules.find((r) => r.value === 'phase1-block-test.example')!.id;
-    await controller.onBlockPageReport({ type: 'BLOCK_PAGE_REPORT', ruleId, url: 'https://phase1-block-test.example/x' }, BLOCK_PAGE, EXT_ID);
+    const ruleId = (await makePolicy(1)).rules.find(
+      (r) => r.value === 'phase1-block-test.example',
+    )!.id;
+    await controller.onBlockPageReport(
+      { type: 'BLOCK_PAGE_REPORT', ruleId, url: 'https://phase1-block-test.example/x' },
+      BLOCK_PAGE,
+      EXT_ID,
+    );
     const queued = await controller.state.queue();
     expect(queued.map((e) => e.eventType)).toEqual(['EXTENSION_DISCONNECTED', 'URL_BLOCKED']);
 
@@ -97,7 +106,11 @@ describe('ExtensionController', () => {
     const p2 = port();
     expect(ports).toHaveLength(2);
     expect(p2.ofType('REQUEST_POLICY')[0]).toMatchObject({ currentVersion: 1 });
-    expect(events(p2).map((e) => e.eventType)).toEqual(['EXTENSION_CONNECTED', 'EXTENSION_DISCONNECTED', 'URL_BLOCKED']);
+    expect(events(p2).map((e) => e.eventType)).toEqual([
+      'EXTENSION_CONNECTED',
+      'EXTENSION_DISCONNECTED',
+      'URL_BLOCKED',
+    ]);
     expect(await controller.state.queue()).toHaveLength(0);
   });
 
@@ -120,7 +133,9 @@ describe('ExtensionController', () => {
       startTime: '2026-10-27T00:00:00.000Z',
       endTime: '2026-10-28T00:00:00.000Z',
     });
-    expect(port().ofType('COLLECT_HISTORY')[0]).toMatchObject({ result: { status: 'unsupported' } });
+    expect(port().ofType('COLLECT_HISTORY')[0]).toMatchObject({
+      result: { status: 'unsupported' },
+    });
   });
 
   it('answers DIAGNOSTIC_REQUEST with local state', async () => {
@@ -152,35 +167,80 @@ describe('block page reports', () => {
   });
 
   it('emits a verified URL_BLOCKED event', async () => {
-    const res = await controller.onBlockPageReport({ type: 'BLOCK_PAGE_REPORT', ruleId, url: 'https://www.phase1-block-test.example/login?x=1' }, BLOCK_PAGE, EXT_ID);
+    const res = await controller.onBlockPageReport(
+      { type: 'BLOCK_PAGE_REPORT', ruleId, url: 'https://www.phase1-block-test.example/login?x=1' },
+      BLOCK_PAGE,
+      EXT_ID,
+    );
     expect(res).toEqual({ domain: 'www.phase1-block-test.example', category: 'custom', ruleId });
     const [e] = events(port(), 'URL_BLOCKED');
-    expect(e).toMatchObject({ url: 'https://www.phase1-block-test.example/login?x=1', domain: 'www.phase1-block-test.example', ruleId, policyVersion: 1, browser: 'edge' });
+    expect(e).toMatchObject({
+      url: 'https://www.phase1-block-test.example/login?x=1',
+      domain: 'www.phase1-block-test.example',
+      ruleId,
+      policyVersion: 1,
+      browser: 'edge',
+    });
   });
 
   it('rejects reports from web pages or other extensions', async () => {
     const msg = { type: 'BLOCK_PAGE_REPORT', ruleId, url: 'https://phase1-block-test.example/' };
-    expect(await controller.onBlockPageReport(msg, { id: 'otherextension', url: `${ORIGIN}/blocked.html` }, EXT_ID)).toBeNull();
-    expect(await controller.onBlockPageReport(msg, { id: EXT_ID, url: 'https://evil.example/' }, EXT_ID)).toBeNull();
-    expect(await controller.onBlockPageReport(msg, { id: EXT_ID, url: `${ORIGIN}/popup.html` }, EXT_ID)).toBeNull();
+    expect(
+      await controller.onBlockPageReport(
+        msg,
+        { id: 'otherextension', url: `${ORIGIN}/blocked.html` },
+        EXT_ID,
+      ),
+    ).toBeNull();
+    expect(
+      await controller.onBlockPageReport(msg, { id: EXT_ID, url: 'https://evil.example/' }, EXT_ID),
+    ).toBeNull();
+    expect(
+      await controller.onBlockPageReport(msg, { id: EXT_ID, url: `${ORIGIN}/popup.html` }, EXT_ID),
+    ).toBeNull();
     expect(events(port(), 'URL_BLOCKED')).toHaveLength(0);
   });
 
   it('rejects forged reports that do not match the policy', async () => {
     // URL not covered by the rule
-    expect(await controller.onBlockPageReport({ type: 'BLOCK_PAGE_REPORT', ruleId, url: 'https://innocent.example/' }, BLOCK_PAGE, EXT_ID)).toBeNull();
+    expect(
+      await controller.onBlockPageReport(
+        { type: 'BLOCK_PAGE_REPORT', ruleId, url: 'https://innocent.example/' },
+        BLOCK_PAGE,
+        EXT_ID,
+      ),
+    ).toBeNull();
     // unknown rule
-    expect(await controller.onBlockPageReport({ type: 'BLOCK_PAGE_REPORT', ruleId: 999999, url: null }, BLOCK_PAGE, EXT_ID)).toBeNull();
+    expect(
+      await controller.onBlockPageReport(
+        { type: 'BLOCK_PAGE_REPORT', ruleId: 999999, url: null },
+        BLOCK_PAGE,
+        EXT_ID,
+      ),
+    ).toBeNull();
     // allow rule
     const allowId = (await makePolicy(1)).rules.find((r) => r.action === 'allow')!.id;
-    expect(await controller.onBlockPageReport({ type: 'BLOCK_PAGE_REPORT', ruleId: allowId, url: null }, BLOCK_PAGE, EXT_ID)).toBeNull();
+    expect(
+      await controller.onBlockPageReport(
+        { type: 'BLOCK_PAGE_REPORT', ruleId: allowId, url: null },
+        BLOCK_PAGE,
+        EXT_ID,
+      ),
+    ).toBeNull();
     expect(events(port(), 'URL_BLOCKED')).toHaveLength(0);
   });
 
   it('reports without a captured URL using the rule value', async () => {
-    const res = await controller.onBlockPageReport({ type: 'BLOCK_PAGE_REPORT', ruleId, url: null }, BLOCK_PAGE, EXT_ID);
+    const res = await controller.onBlockPageReport(
+      { type: 'BLOCK_PAGE_REPORT', ruleId, url: null },
+      BLOCK_PAGE,
+      EXT_ID,
+    );
     expect(res?.domain).toBe('phase1-block-test.example');
-    expect(events(port(), 'URL_BLOCKED')[0]).toMatchObject({ url: 'https://phase1-block-test.example/', details: { urlCaptured: false } });
+    expect(events(port(), 'URL_BLOCKED')[0]).toMatchObject({
+      url: 'https://phase1-block-test.example/',
+      details: { urlCaptured: false },
+    });
   });
 
   it('deduplicates reloads of the block page', async () => {
@@ -199,7 +259,9 @@ describe('event queue', () => {
     const { MAX_QUEUED_EVENTS } = await import('../src/background/state');
     await Promise.all(Array.from({ length: 50 }, () => controller.emit('AGENT_HEARTBEAT', {})));
     expect(await controller.state.queue()).toHaveLength(50);
-    await Promise.all(Array.from({ length: MAX_QUEUED_EVENTS }, () => controller.emit('AGENT_HEARTBEAT', {})));
+    await Promise.all(
+      Array.from({ length: MAX_QUEUED_EVENTS }, () => controller.emit('AGENT_HEARTBEAT', {})),
+    );
     expect(await controller.state.queue()).toHaveLength(MAX_QUEUED_EVENTS);
   });
 });

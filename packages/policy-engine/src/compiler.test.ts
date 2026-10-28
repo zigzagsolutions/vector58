@@ -20,20 +20,104 @@ const base: CompileInput = {
   policyVersion: 7,
   generatedAt: NOW,
   globalIndicators: [
-    { indicatorType: 'domain', normalizedValue: 'global-bad.example', threatCategory: 'malware', confidence: 95, status: 'active', expiresAt: null },
-    { indicatorType: 'domain', normalizedValue: 'shared.example', threatCategory: 'phishing', confidence: 90, status: 'active', expiresAt: null },
-    { indicatorType: 'domain', normalizedValue: 'false-positive.example', threatCategory: 'phishing', confidence: 99, status: 'active', expiresAt: null },
-    { indicatorType: 'domain', normalizedValue: 'low-confidence.example', threatCategory: 'fraud', confidence: 10, status: 'active', expiresAt: null },
-    { indicatorType: 'domain', normalizedValue: 'expired.example', threatCategory: 'fraud', confidence: 99, status: 'active', expiresAt: '2026-01-01T00:00:00Z' },
-    { indicatorType: 'domain', normalizedValue: 'revoked.example', threatCategory: 'fraud', confidence: 99, status: 'revoked', expiresAt: null },
+    {
+      indicatorType: 'domain',
+      normalizedValue: 'global-bad.example',
+      threatCategory: 'malware',
+      confidence: 95,
+      status: 'active',
+      expiresAt: null,
+    },
+    {
+      indicatorType: 'domain',
+      normalizedValue: 'shared.example',
+      threatCategory: 'phishing',
+      confidence: 90,
+      status: 'active',
+      expiresAt: null,
+    },
+    {
+      indicatorType: 'domain',
+      normalizedValue: 'false-positive.example',
+      threatCategory: 'phishing',
+      confidence: 99,
+      status: 'active',
+      expiresAt: null,
+    },
+    {
+      indicatorType: 'domain',
+      normalizedValue: 'low-confidence.example',
+      threatCategory: 'fraud',
+      confidence: 10,
+      status: 'active',
+      expiresAt: null,
+    },
+    {
+      indicatorType: 'domain',
+      normalizedValue: 'expired.example',
+      threatCategory: 'fraud',
+      confidence: 99,
+      status: 'active',
+      expiresAt: '2026-01-01T00:00:00Z',
+    },
+    {
+      indicatorType: 'domain',
+      normalizedValue: 'revoked.example',
+      threatCategory: 'fraud',
+      confidence: 99,
+      status: 'revoked',
+      expiresAt: null,
+    },
   ],
   tenantRules: [
-    { ruleType: 'BLOCK_DOMAIN', normalizedValue: 'phase1-block-test.example', priority: 100, enabled: true, category: 'custom', expiresAt: null },
-    { ruleType: 'BLOCK_DOMAIN', normalizedValue: 'shared.example', priority: 100, enabled: true, category: 'custom', expiresAt: null },
-    { ruleType: 'BLOCK_URL', normalizedValue: 'https://cdn.example/evil.exe', priority: 50, enabled: true, category: 'malicious-download', expiresAt: null },
-    { ruleType: 'ALLOW_DOMAIN', normalizedValue: 'false-positive.example', priority: 100, enabled: true, category: 'custom', expiresAt: null },
-    { ruleType: 'BLOCK_DOMAIN', normalizedValue: 'disabled.example', priority: 100, enabled: false, category: 'custom', expiresAt: null },
-    { ruleType: 'BLOCK_DOMAIN', normalizedValue: 'NOT-NORMALIZED.example', priority: 100, enabled: true, category: 'custom', expiresAt: null },
+    {
+      ruleType: 'BLOCK_DOMAIN',
+      normalizedValue: 'phase1-block-test.example',
+      priority: 100,
+      enabled: true,
+      category: 'custom',
+      expiresAt: null,
+    },
+    {
+      ruleType: 'BLOCK_DOMAIN',
+      normalizedValue: 'shared.example',
+      priority: 100,
+      enabled: true,
+      category: 'custom',
+      expiresAt: null,
+    },
+    {
+      ruleType: 'BLOCK_URL',
+      normalizedValue: 'https://cdn.example/evil.exe',
+      priority: 50,
+      enabled: true,
+      category: 'malicious-download',
+      expiresAt: null,
+    },
+    {
+      ruleType: 'ALLOW_DOMAIN',
+      normalizedValue: 'false-positive.example',
+      priority: 100,
+      enabled: true,
+      category: 'custom',
+      expiresAt: null,
+    },
+    {
+      ruleType: 'BLOCK_DOMAIN',
+      normalizedValue: 'disabled.example',
+      priority: 100,
+      enabled: false,
+      category: 'custom',
+      expiresAt: null,
+    },
+    {
+      ruleType: 'BLOCK_DOMAIN',
+      normalizedValue: 'NOT-NORMALIZED.example',
+      priority: 100,
+      enabled: true,
+      category: 'custom',
+      expiresAt: null,
+    },
   ],
 };
 
@@ -64,18 +148,33 @@ describe('compilePolicy', () => {
       policyVersion: 8,
       tenantRules: [
         ...base.tenantRules,
-        { ruleType: 'BLOCK_DOMAIN', normalizedValue: 'new.example', priority: 1, enabled: true, category: 'custom', expiresAt: null },
+        {
+          ruleType: 'BLOCK_DOMAIN',
+          normalizedValue: 'new.example',
+          priority: 1,
+          enabled: true,
+          category: 'custom',
+          expiresAt: null,
+        },
       ],
     });
     const idOf = (p: typeof a.payload, v: string) => p.rules.find((r) => r.value === v)?.id;
-    expect(idOf(b.payload, 'phase1-block-test.example')).toBe(idOf(a.payload, 'phase1-block-test.example'));
+    expect(idOf(b.payload, 'phase1-block-test.example')).toBe(
+      idOf(a.payload, 'phase1-block-test.example'),
+    );
     expect(b.payload.checksum).not.toBe(a.payload.checksum);
   });
 
   it('filters disabled, expired, revoked, low-confidence and unnormalised entries', async () => {
     const { payload, stats } = await compilePolicy(base);
     const values = payload.rules.map((r) => r.value);
-    for (const v of ['disabled.example', 'expired.example', 'revoked.example', 'low-confidence.example', 'NOT-NORMALIZED.example']) {
+    for (const v of [
+      'disabled.example',
+      'expired.example',
+      'revoked.example',
+      'low-confidence.example',
+      'NOT-NORMALIZED.example',
+    ]) {
       expect(values).not.toContain(v);
     }
     expect(stats.skippedInvalid).toBe(1);
@@ -98,7 +197,9 @@ describe('compilePolicy', () => {
 describe('precedence', () => {
   const effective = async (host: string) => {
     const { payload } = await compilePolicy(base);
-    const matching = payload.rules.filter((r) => r.type === 'domain' && hostnameMatchesDomain(host, r.value));
+    const matching = payload.rules.filter(
+      (r) => r.type === 'domain' && hostnameMatchesDomain(host, r.value),
+    );
     return decide(matching);
   };
 
@@ -137,7 +238,12 @@ describe('precedence', () => {
     }
   });
   it('allow wins ties like Chromium DNR', () => {
-    expect(decide([{ action: 'block', priority: 5 }, { action: 'allow', priority: 5 }]).action).toBe('allow');
+    expect(
+      decide([
+        { action: 'block', priority: 5 },
+        { action: 'allow', priority: 5 },
+      ]).action,
+    ).toBe('allow');
   });
 });
 
@@ -147,7 +253,9 @@ describe('versioning and ids', () => {
     expect(nextPolicyVersion([1, 2, 5])).toBe(6);
   });
   it('assigns unique ids under collisions', () => {
-    const ids = assignRuleIds(Array.from({ length: 5000 }, (_, i) => `tenant|block|domain|d${i}.example`));
+    const ids = assignRuleIds(
+      Array.from({ length: 5000 }, (_, i) => `tenant|block|domain|d${i}.example`),
+    );
     expect(new Set(ids.values()).size).toBe(5000);
   });
   it('checksum covers all fields except checksum/signature', async () => {

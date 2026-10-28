@@ -8,3 +8,7 @@ services/windows-agent/**/bin
 services/windows-agent/**/obj
 apps/extension/build
 supabase/.temp
+services/windows-agent/artifacts
+services/windows-agent/**/Fixtures/vectors.json
+test-results
+.pgdata

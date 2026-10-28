@@ -11,9 +11,11 @@ export { Authorizer } from './authorizer';
 export const getAuthorizer = cache(() => new Authorizer(supabaseSessionProvider));
 
 export const requireAuthenticatedUser = () => getAuthorizer().requireAuthenticatedUser();
-export const requirePlatformPermission = (p: PlatformPermission) => getAuthorizer().requirePlatformPermission(p);
+export const requirePlatformPermission = (p: PlatformPermission) =>
+  getAuthorizer().requirePlatformPermission(p);
 export const requirePlatformUser = () => getAuthorizer().requirePlatformUser();
-export const requireTenantMembership = (organizationId: string) => getAuthorizer().requireTenantMembership(organizationId);
+export const requireTenantMembership = (organizationId: string) =>
+  getAuthorizer().requireTenantMembership(organizationId);
 export const requireTenantPermission = (organizationId: string, p: TenantPermission) =>
   getAuthorizer().requireTenantPermission(organizationId, p);
 export const resolveTenantContext = () => getAuthorizer().resolveTenantContext();

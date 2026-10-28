@@ -33,8 +33,16 @@ export function ActionButton({
       >
         {pending ? '…' : label}
       </Button>
-      {result?.error ? <span role="alert" className="text-xs text-danger">{result.error}</span> : null}
-      {result?.ok && result.message ? <span role="status" className="text-xs text-success">{result.message}</span> : null}
+      {result?.error ? (
+        <span role="alert" className="text-xs text-danger">
+          {result.error}
+        </span>
+      ) : null}
+      {result?.ok && result.message ? (
+        <span role="status" className="text-xs text-success">
+          {result.message}
+        </span>
+      ) : null}
     </span>
   );
 }

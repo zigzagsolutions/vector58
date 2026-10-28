@@ -18,7 +18,12 @@ export const EventFiltersSchema = z.object({
 });
 export type EventFilters = z.infer<typeof EventFiltersSchema>;
 
-const RANGE_MS: Record<string, number> = { '1h': 3.6e6, '24h': 8.64e7, '7d': 6.048e8, '30d': 2.592e9 };
+const RANGE_MS: Record<string, number> = {
+  '1h': 3.6e6,
+  '24h': 8.64e7,
+  '7d': 6.048e8,
+  '30d': 2.592e9,
+};
 
 export interface SecurityEventRow {
   id: string;
@@ -40,7 +45,10 @@ export interface SecurityEventRow {
 }
 
 /** Tenant event search. Runs under RLS; organization comes from the authorized actor. */
-export async function listSecurityEvents(actor: TenantActor, filters: EventFilters): Promise<SecurityEventRow[]> {
+export async function listSecurityEvents(
+  actor: TenantActor,
+  filters: EventFilters,
+): Promise<SecurityEventRow[]> {
   const where: string[] = ['organization_id = $1'];
   const params: unknown[] = [actor.organizationId];
   const add = (sql: string, v: unknown) => {
@@ -53,7 +61,9 @@ export async function listSecurityEvents(actor: TenantActor, filters: EventFilte
   if (filters.category) add('threat_category = ?', filters.category);
   if (filters.eventType) add('event_type = ?', filters.eventType);
   if (filters.policyVersion !== undefined) add('policy_version = ?', filters.policyVersion);
-  const from = filters.from ?? (filters.range ? new Date(Date.now() - RANGE_MS[filters.range]!).toISOString() : undefined);
+  const from =
+    filters.from ??
+    (filters.range ? new Date(Date.now() - RANGE_MS[filters.range]!).toISOString() : undefined);
   if (from) add('occurred_at >= ?', from);
   if (filters.to) add('occurred_at <= ?', filters.to);
   params.push(filters.limit);

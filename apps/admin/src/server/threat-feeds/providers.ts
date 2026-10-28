@@ -1,4 +1,9 @@
-import { FeedNotConfiguredError, type FeedFetchContext, type RawIndicator, type ThreatFeedProvider } from './provider';
+import {
+  FeedNotConfiguredError,
+  type FeedFetchContext,
+  type RawIndicator,
+  type ThreatFeedProvider,
+} from './provider';
 
 /** Deterministic sample feed for development and tests (includes duplicates and junk on purpose). */
 export const sampleFeedProvider: ThreatFeedProvider = {
@@ -8,7 +13,12 @@ export const sampleFeedProvider: ThreatFeedProvider = {
     return [
       { value: 'sample-phish-login.example', category: 'phishing', confidence: 92 },
       { value: 'SAMPLE-PHISH-LOGIN.example.', category: 'phishing', confidence: 80 },
-      { value: 'https://sample-malware-cdn.example/payload.exe', type: 'exact_url', category: 'malicious-download', confidence: 97 },
+      {
+        value: 'https://sample-malware-cdn.example/payload.exe',
+        type: 'exact_url',
+        category: 'malicious-download',
+        confidence: 97,
+      },
       { value: 'sample-c2-beacon.example', category: 'command-and-control', confidence: 88 },
       { value: 'sample-credential-harvest.example', category: 'credential-theft', confidence: 85 },
       { value: 'sample-fraud-shop.example', category: 'fraud', confidence: 70 },
@@ -41,7 +51,10 @@ export const urlhausProvider: ThreatFeedProvider = {
   sourceType: 'urlhaus',
   defaultCategory: 'malware',
   async fetch(ctx) {
-    const url = typeof ctx.config.url === 'string' ? ctx.config.url : 'https://urlhaus.abuse.ch/downloads/text_recent/';
+    const url =
+      typeof ctx.config.url === 'string'
+        ? ctx.config.url
+        : 'https://urlhaus.abuse.ch/downloads/text_recent/';
     return parseUrlList(await fetchText(ctx, url)).map((i) => ({ ...i, category: 'malware' }));
   },
 };
@@ -51,7 +64,8 @@ export const openPhishProvider: ThreatFeedProvider = {
   sourceType: 'openphish',
   defaultCategory: 'phishing',
   async fetch(ctx) {
-    const url = typeof ctx.config.url === 'string' ? ctx.config.url : 'https://openphish.com/feed.txt';
+    const url =
+      typeof ctx.config.url === 'string' ? ctx.config.url : 'https://openphish.com/feed.txt';
     return parseUrlList(await fetchText(ctx, url)).map((i) => ({ ...i, category: 'phishing' }));
   },
 };

@@ -25,7 +25,9 @@ export function tenantPermissionsFor(roleKeys: readonly string[]): Set<TenantPer
 }
 
 /** Tenant permissions a platform user gains inside an explicitly entered tenant context. */
-export function tenantContextPermissionsFor(platformRoleKeys: readonly string[]): Set<TenantPermission> {
+export function tenantContextPermissionsFor(
+  platformRoleKeys: readonly string[],
+): Set<TenantPermission> {
   const out = new Set<TenantPermission>();
   for (const key of platformRoleKeys) {
     const role = getRole(key);

@@ -14,9 +14,19 @@ export default async function NewIncidentPage({ params }: { params: Promise<{ or
       <Card className="max-w-xl">
         <CardContent>
           <ActionForm action={createIncidentAction.bind(null, orgId)} submitLabel="Create incident">
-            <Field label="Title" htmlFor="title"><Input id="title" name="title" required minLength={3} maxLength={200} /></Field>
-            <Field label="Severity" htmlFor="severity"><Select id="severity" name="severity" defaultValue="medium">{['low', 'medium', 'high', 'critical'].map((s) => <option key={s}>{s}</option>)}</Select></Field>
-            <Field label="Description" htmlFor="description"><Textarea id="description" name="description" maxLength={5000} /></Field>
+            <Field label="Title" htmlFor="title">
+              <Input id="title" name="title" required minLength={3} maxLength={200} />
+            </Field>
+            <Field label="Severity" htmlFor="severity">
+              <Select id="severity" name="severity" defaultValue="medium">
+                {['low', 'medium', 'high', 'critical'].map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Description" htmlFor="description">
+              <Textarea id="description" name="description" maxLength={5000} />
+            </Field>
           </ActionForm>
         </CardContent>
       </Card>

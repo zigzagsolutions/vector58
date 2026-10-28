@@ -56,17 +56,32 @@ export async function listOrganizations(actor: PlatformActor): Promise<CustomerR
 
 export async function getOrganization(actor: PlatformActor, organizationId: string) {
   const r = await withUserTx(actor.user.id, (db) =>
-    db.query(`select id, name, slug, status, created_at, disabled_at from public.organizations where id = $1`, [organizationId]),
+    db.query(
+      `select id, name, slug, status, created_at, disabled_at from public.organizations where id = $1`,
+      [organizationId],
+    ),
   );
   const o = r.rows[0];
   if (!o) throw notFound('Organization not found');
-  return { id: o.id as string, name: o.name as string, slug: o.slug as string, status: o.status as string, createdAt: (o.created_at as Date).toISOString() };
+  return {
+    id: o.id as string,
+    name: o.name as string,
+    slug: o.slug as string,
+    status: o.status as string,
+    createdAt: (o.created_at as Date).toISOString(),
+  };
 }
 
 /** Creates a tenant with its default policy. Tenant #1 (Internal) is created the same way. */
-export async function createOrganization(actor: PlatformActor, input: CreateOrganizationRequest, request?: RequestMeta) {
+export async function createOrganization(
+  actor: PlatformActor,
+  input: CreateOrganizationRequest,
+  request?: RequestMeta,
+) {
   return withServiceTx(async (db) => {
-    const exists = await db.query(`select 1 from public.organizations where slug = $1`, [input.slug]);
+    const exists = await db.query(`select 1 from public.organizations where slug = $1`, [
+      input.slug,
+    ]);
     if (exists.rowCount) throw conflict(`Slug "${input.slug}" is already in use`);
     const org = await db.query<{ id: string; created_at: Date }>(
       `insert into public.organizations (name, slug, created_by) values ($1, $2, $3) returning id, created_at`,
@@ -87,7 +102,13 @@ export async function createOrganization(actor: PlatformActor, input: CreateOrga
       metadata: { name: input.name, slug: input.slug },
       request,
     });
-    return { id, name: input.name, slug: input.slug, status: 'active' as const, createdAt: org.rows[0]!.created_at.toISOString() };
+    return {
+      id,
+      name: input.name,
+      slug: input.slug,
+      status: 'active' as const,
+      createdAt: org.rows[0]!.created_at.toISOString(),
+    };
   });
 }
 
@@ -108,7 +129,9 @@ export async function setOrganizationStatus(
       [organizationId, status, actor.user.id],
     );
     if (r.rowCount === 0) {
-      const exists = await db.query(`select 1 from public.organizations where id = $1`, [organizationId]);
+      const exists = await db.query(`select 1 from public.organizations where id = $1`, [
+        organizationId,
+      ]);
       if (!exists.rowCount) throw notFound('Organization not found');
       return { changed: false };
     }

@@ -18,7 +18,11 @@ export interface ApplyOutcome {
  * (updateDynamicRules is atomic), so protection never drops because of a bad
  * or partial update.
  */
-export async function applyPolicyUpdate(raw: unknown, platform: ExtensionPlatform, state: ExtensionState): Promise<ApplyOutcome> {
+export async function applyPolicyUpdate(
+  raw: unknown,
+  platform: ExtensionPlatform,
+  state: ExtensionState,
+): Promise<ApplyOutcome> {
   const now = platform.now().toISOString();
   const current = await state.getPolicy();
   const fail = (error: string, version: number | null = null): ApplyOutcome => ({
@@ -34,20 +38,41 @@ export async function applyPolicyUpdate(raw: unknown, platform: ExtensionPlatfor
   });
 
   const parsed = PolicyUpdateMessageSchema.safeParse(raw);
-  if (!parsed.success) return fail(`Invalid POLICY_UPDATE: ${parsed.error.issues.slice(0, 3).map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`);
+  if (!parsed.success)
+    return fail(
+      `Invalid POLICY_UPDATE: ${parsed.error.issues
+        .slice(0, 3)
+        .map((i) => `${i.path.join('.')}: ${i.message}`)
+        .join('; ')}`,
+    );
   const { payload } = parsed.data;
-  if (parsed.data.policyVersion !== payload.policyVersion) return fail('Envelope and payload policy versions differ', payload.policyVersion);
-  if (!(await verifyPolicyChecksum(payload))) return fail('Policy checksum verification failed', payload.policyVersion);
+  if (parsed.data.policyVersion !== payload.policyVersion)
+    return fail('Envelope and payload policy versions differ', payload.policyVersion);
+  if (!(await verifyPolicyChecksum(payload)))
+    return fail('Policy checksum verification failed', payload.policyVersion);
   if (current && current.organizationId !== payload.organizationId) {
     // A device belongs to exactly one tenant; switching tenants requires re-enrollment.
     return fail('Policy organization does not match the applied policy', payload.policyVersion);
   }
   if (current && payload.policyVersion < current.policyVersion) {
-    return fail(`Refusing rollback from v${current.policyVersion} to v${payload.policyVersion}`, payload.policyVersion);
+    return fail(
+      `Refusing rollback from v${current.policyVersion} to v${payload.policyVersion}`,
+      payload.policyVersion,
+    );
   }
-  if (current && payload.policyVersion === current.policyVersion && payload.checksum === current.checksum) {
+  if (
+    current &&
+    payload.policyVersion === current.policyVersion &&
+    payload.checksum === current.checksum
+  ) {
     return {
-      status: { type: 'POLICY_STATUS', policyVersion: current.policyVersion, status: 'unchanged', ruleCount: current.ruleCount, appliedAt: current.appliedAt },
+      status: {
+        type: 'POLICY_STATUS',
+        policyVersion: current.policyVersion,
+        status: 'unchanged',
+        ruleCount: current.ruleCount,
+        appliedAt: current.appliedAt,
+      },
     };
   }
 
@@ -61,16 +86,25 @@ export async function applyPolicyUpdate(raw: unknown, platform: ExtensionPlatfor
       // Pre-check regexes; unsupported ones fall back to non-capturing redirects.
       for (const r of dnrRules) {
         if (r.condition.regexFilter && r.action.type === 'redirect') {
-          regexOk.set(r.condition.regexFilter, await platform.dnr.isRegexSupported(r.condition.regexFilter));
+          regexOk.set(
+            r.condition.regexFilter,
+            await platform.dnr.isRegexSupported(r.condition.regexFilter),
+          );
         }
       }
     }
     const final = regexOk.size
-      ? convertPolicyRules(payload.rules, { extensionOrigin: platform.extensionOrigin, regexSupported: (re) => regexOk.get(re) ?? true }).rules
+      ? convertPolicyRules(payload.rules, {
+          extensionOrigin: platform.extensionOrigin,
+          regexSupported: (re) => regexOk.get(re) ?? true,
+        }).rules
       : dnrRules;
     const existing = await platform.dnr.getDynamicRules();
     const diff = diffRules(existing, final);
-    await platform.dnr.updateDynamicRules({ removeRuleIds: diff.removeRuleIds, addRules: diff.addRules });
+    await platform.dnr.updateDynamicRules({
+      removeRuleIds: diff.removeRuleIds,
+      addRules: diff.addRules,
+    });
 
     await state.setPolicy({
       policyVersion: payload.policyVersion,
@@ -79,12 +113,27 @@ export async function applyPolicyUpdate(raw: unknown, platform: ExtensionPlatfor
       appliedAt: now,
       ruleCount: payload.rules.length,
       dnrRuleCount: final.length,
-      rules: payload.rules.map(({ id, type, value, action, category }) => ({ id, type, value, action, category })),
+      rules: payload.rules.map(({ id, type, value, action, category }) => ({
+        id,
+        type,
+        value,
+        action,
+        category,
+      })),
     });
     return {
-      status: { type: 'POLICY_STATUS', policyVersion: payload.policyVersion, status: 'applied', ruleCount: payload.rules.length, appliedAt: now },
+      status: {
+        type: 'POLICY_STATUS',
+        policyVersion: payload.policyVersion,
+        status: 'applied',
+        ruleCount: payload.rules.length,
+        appliedAt: now,
+      },
     };
   } catch (e) {
-    return fail(`Failed to apply DNR rules: ${(e as Error).message ?? String(e)}`, payload.policyVersion);
+    return fail(
+      `Failed to apply DNR rules: ${(e as Error).message ?? String(e)}`,
+      payload.policyVersion,
+    );
   }
 }

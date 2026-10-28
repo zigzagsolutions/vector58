@@ -13,7 +13,11 @@ export interface ProtectionInput {
   readonly policyVersion: number | null;
   readonly latestPolicyVersion: number | null;
   readonly latestPublishedAt: Date | null;
-  readonly browserClients: readonly { nativeConnected: boolean; policyVersion: number | null; lastSeenAt: Date }[];
+  readonly browserClients: readonly {
+    nativeConnected: boolean;
+    policyVersion: number | null;
+    lastSeenAt: Date;
+  }[];
   readonly now: Date;
 }
 
@@ -28,7 +32,11 @@ export interface ProtectionInput {
 export function computeProtectionStatus(d: ProtectionInput): ProtectionStatus {
   if (!d.enrolledAt) return 'never_enrolled';
   const ageSec = (t: Date) => (d.now.getTime() - t.getTime()) / 1000;
-  if (d.status === 'disabled' || !d.lastHeartbeatAt || ageSec(d.lastHeartbeatAt) > DEVICE_OFFLINE_AFTER_SECONDS) {
+  if (
+    d.status === 'disabled' ||
+    !d.lastHeartbeatAt ||
+    ageSec(d.lastHeartbeatAt) > DEVICE_OFFLINE_AFTER_SECONDS
+  ) {
     return 'offline';
   }
   if (
@@ -38,8 +46,11 @@ export function computeProtectionStatus(d: ProtectionInput): ProtectionStatus {
   ) {
     return 'policy_outdated';
   }
-  const live = d.browserClients.filter((c) => c.nativeConnected && ageSec(c.lastSeenAt) <= BROWSER_CLIENT_STALE_SECONDS);
+  const live = d.browserClients.filter(
+    (c) => c.nativeConnected && ageSec(c.lastSeenAt) <= BROWSER_CLIENT_STALE_SECONDS,
+  );
   if (live.length === 0) return 'degraded';
-  if (d.policyVersion !== null && live.some((c) => (c.policyVersion ?? 0) < d.policyVersion!)) return 'degraded';
+  if (d.policyVersion !== null && live.some((c) => (c.policyVersion ?? 0) < d.policyVersion!))
+    return 'degraded';
   return 'protected';
 }

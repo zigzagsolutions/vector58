@@ -13,7 +13,12 @@ export function depsFor(user: SessionUser | string | null): ApiDeps {
   };
 }
 
-export function req(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Request {
+export function req(
+  method: string,
+  path: string,
+  body?: unknown,
+  headers: Record<string, string> = {},
+): Request {
   return new Request(`${ORIGIN}${path}`, {
     method,
     headers: {

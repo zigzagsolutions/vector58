@@ -11,7 +11,10 @@ export const THead = (p: HTMLAttributes<HTMLTableSectionElement>) => (
 );
 export const TBody = (p: HTMLAttributes<HTMLTableSectionElement>) => <tbody {...p} />;
 export const TR = ({ className, ...p }: HTMLAttributes<HTMLTableRowElement>) => (
-  <tr className={cn('border-b border-border last:border-0 hover:bg-gray-50/60', className)} {...p} />
+  <tr
+    className={cn('border-b border-border last:border-0 hover:bg-gray-50/60', className)}
+    {...p}
+  />
 );
 export const TH = ({ className, ...p }: ThHTMLAttributes<HTMLTableCellElement>) => (
   <th className={cn('px-3 py-2 font-medium whitespace-nowrap', className)} {...p} />

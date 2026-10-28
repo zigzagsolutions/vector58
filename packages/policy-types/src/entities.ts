@@ -108,7 +108,12 @@ export type ThreatIndicator = z.infer<typeof ThreatIndicatorSchema>;
 
 /* ---------- Policy ---------- */
 
-export const PolicyRuleTypeSchema = z.enum(['BLOCK_DOMAIN', 'BLOCK_URL', 'ALLOW_DOMAIN', 'ALLOW_URL']);
+export const PolicyRuleTypeSchema = z.enum([
+  'BLOCK_DOMAIN',
+  'BLOCK_URL',
+  'ALLOW_DOMAIN',
+  'ALLOW_URL',
+]);
 export type PolicyRuleType = z.infer<typeof PolicyRuleTypeSchema>;
 
 export const PolicySchema = z.object({

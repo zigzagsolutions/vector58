@@ -46,7 +46,12 @@ export function buildUrlBlockedEvent(
     browserVersion: client.browserVersion,
     extensionVersion: client.extensionVersion,
     url: url ?? (rule.type === 'domain' ? `https://${rule.value}/` : rule.value),
-    domain: rule.type === 'domain' ? (url ? new URL(url).hostname : rule.value) : new URL(rule.value).hostname,
+    domain:
+      rule.type === 'domain'
+        ? url
+          ? new URL(url).hostname
+          : rule.value
+        : new URL(rule.value).hostname,
     ruleId: rule.id,
     policyVersion: policy.policyVersion,
     threatCategory: rule.category,

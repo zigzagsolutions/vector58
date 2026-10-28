@@ -66,8 +66,12 @@ describe('role -> permission mapping', () => {
     expect(p.has('tenant.incident.history.read')).toBe(false);
   });
   it('PlatformSupport is read-only in tenant context; Auditor cannot enter tenants', () => {
-    expect([...tenantContextPermissionsFor(['PlatformSupport'])].every((x) => x.endsWith('.read'))).toBe(true);
-    expect(platformPermissionsFor(['PlatformAuditor']).has('platform.support.enter_tenant')).toBe(false);
+    expect(
+      [...tenantContextPermissionsFor(['PlatformSupport'])].every((x) => x.endsWith('.read')),
+    ).toBe(true);
+    expect(platformPermissionsFor(['PlatformAuditor']).has('platform.support.enter_tenant')).toBe(
+      false,
+    );
   });
   it('unions multiple roles and ignores unknown keys', () => {
     const p = tenantPermissionsFor(['TenantHelpDesk', 'TenantSecurityAnalyst', 'Bogus']);
@@ -86,10 +90,13 @@ describe('canAssignRole', () => {
     expect(canAssignRole(admin, getRole('TenantOwner'))).toBe(false);
   });
   it('owner can assign anything tenant-scoped, never platform roles', () => {
-    for (const key of Object.keys(TENANT_ROLES)) expect(canAssignRole(owner, getRole(key))).toBe(true);
+    for (const key of Object.keys(TENANT_ROLES))
+      expect(canAssignRole(owner, getRole(key))).toBe(true);
     expect(canAssignRole(owner, getRole('PlatformSuperAdmin'))).toBe(false);
   });
   it('requires tenant.users.write', () => {
-    expect(canAssignRole(tenantPermissionsFor(['TenantHelpDesk']), getRole('TenantHelpDesk'))).toBe(false);
+    expect(canAssignRole(tenantPermissionsFor(['TenantHelpDesk']), getRole('TenantHelpDesk'))).toBe(
+      false,
+    );
   });
 });

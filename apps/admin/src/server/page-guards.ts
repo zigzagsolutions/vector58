@@ -6,7 +6,10 @@ import { getAuthorizer } from './auth';
 import type { PlatformActor, TenantActor } from './auth/types';
 
 /** Map authorization failures to navigation for server-rendered pages. */
-async function guard<T>(fn: () => Promise<T>, onNotFound: () => never | Promise<never>): Promise<T> {
+async function guard<T>(
+  fn: () => Promise<T>,
+  onNotFound: () => never | Promise<never>,
+): Promise<T> {
   try {
     return await fn();
   } catch (e) {
@@ -21,7 +24,10 @@ async function guard<T>(fn: () => Promise<T>, onNotFound: () => never | Promise<
 
 export async function platformPage(permission?: PlatformPermission): Promise<PlatformActor> {
   const authz = getAuthorizer();
-  return guard(() => (permission ? authz.requirePlatformPermission(permission) : authz.requirePlatformUser()), () => notFound());
+  return guard(
+    () => (permission ? authz.requirePlatformPermission(permission) : authz.requirePlatformUser()),
+    () => notFound(),
+  );
 }
 
 /**
@@ -29,7 +35,10 @@ export async function platformPage(permission?: PlatformPermission): Promise<Pla
  * sent to the customer page to enter it explicitly (and be audited) - never
  * silently granted access.
  */
-export async function tenantPage(organizationId: string, permission?: TenantPermission): Promise<TenantActor> {
+export async function tenantPage(
+  organizationId: string,
+  permission?: TenantPermission,
+): Promise<TenantActor> {
   const authz = getAuthorizer();
   const actor = await guard(
     () => authz.requireTenantMembership(organizationId),

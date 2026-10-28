@@ -22,11 +22,17 @@ export interface ExtensionPlatform {
 export function chromePlatform(): ExtensionPlatform {
   return {
     dnr: {
-      getDynamicRules: () => chrome.declarativeNetRequest.getDynamicRules() as unknown as Promise<DnrRule[]>,
+      getDynamicRules: () =>
+        chrome.declarativeNetRequest.getDynamicRules() as unknown as Promise<DnrRule[]>,
       updateDynamicRules: (u) =>
-        chrome.declarativeNetRequest.updateDynamicRules(u as unknown as chrome.declarativeNetRequest.UpdateRuleOptions),
+        chrome.declarativeNetRequest.updateDynamicRules(
+          u as unknown as chrome.declarativeNetRequest.UpdateRuleOptions,
+        ),
       isRegexSupported: async (regex) => {
-        const r = await chrome.declarativeNetRequest.isRegexSupported({ regex, isCaseSensitive: false });
+        const r = await chrome.declarativeNetRequest.isRegexSupported({
+          regex,
+          isCaseSensitive: false,
+        });
         return r.isSupported;
       },
     },

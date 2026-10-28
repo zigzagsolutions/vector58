@@ -25,7 +25,8 @@ export interface FeedFetchContext {
  * Credentials must come from server env/vault, never threat_sources.config.
  */
 export interface ThreatFeedProvider {
-  readonly sourceType: 'sample' | 'urlhaus' | 'openphish' | 'phishtank' | 'commercial' | 'internal' | 'manual';
+  readonly sourceType:
+    'sample' | 'urlhaus' | 'openphish' | 'phishtank' | 'commercial' | 'internal' | 'manual';
   readonly defaultCategory: ThreatCategory;
   fetch(ctx: FeedFetchContext): Promise<RawIndicator[]>;
 }

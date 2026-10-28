@@ -21,7 +21,10 @@ export function listTenantUsers(actor: TenantActor): Promise<TenantUserRow[]> {
 }
 
 /** Platform directory view (RLS: platform.users.read). */
-export function listTenantUsersForPlatform(actor: PlatformActor, organizationId: string): Promise<TenantUserRow[]> {
+export function listTenantUsersForPlatform(
+  actor: PlatformActor,
+  organizationId: string,
+): Promise<TenantUserRow[]> {
   if (!actor.permissions.has('platform.users.read')) throw forbidden();
   return queryTenantUsers(actor.user.id, organizationId);
 }
@@ -54,7 +57,10 @@ async function queryTenantUsers(userId: string, organizationId: string): Promise
 /** Who is managing tenant users: a tenant member/context actor, or a platform user with platform.users.manage. */
 export type UserManager = TenantActor | PlatformActor;
 
-async function rolePermissions(db: Db, roleKey: string): Promise<{ id: string; perms: Set<string> } | null> {
+async function rolePermissions(
+  db: Db,
+  roleKey: string,
+): Promise<{ id: string; perms: Set<string> } | null> {
   const r = await db.query<{ id: string; perms: string[] }>(
     `select r.id, coalesce(array_agg(rp.permission_key) filter (where rp.permission_key is not null), '{}') as perms
      from public.roles r left join public.role_permissions rp on rp.role_id = r.id
@@ -100,7 +106,10 @@ async function assertOwnerRemains(db: Db, organizationId: string) {
      limit 1`,
     [organizationId],
   );
-  const members = await db.query(`select 1 from public.organization_users where organization_id = $1 and status = 'active' limit 1`, [organizationId]);
+  const members = await db.query(
+    `select 1 from public.organization_users where organization_id = $1 and status = 'active' limit 1`,
+    [organizationId],
+  );
   if (members.rowCount && !r.rowCount) {
     throw new AppError('CONFLICT', 'This change would leave the organization without an owner');
   }
@@ -115,7 +124,9 @@ export async function addTenantUser(
 ) {
   orgOf(manager, organizationId);
   return withServiceTx(async (db) => {
-    const org = await db.query(`select status from public.organizations where id = $1`, [organizationId]);
+    const org = await db.query(`select status from public.organizations where id = $1`, [
+      organizationId,
+    ]);
     if (!org.rowCount) throw notFound('Organization not found');
     const role = await rolePermissions(db, input.roleKey);
     if (!role) throw new AppError('VALIDATION_FAILED', `Unknown tenant role "${input.roleKey}"`);
@@ -126,7 +137,8 @@ export async function addTenantUser(
       `select status from public.organization_users where organization_id = $1 and user_id = $2`,
       [organizationId, userId],
     );
-    if (existing.rows[0]?.status === 'active') throw conflict('User is already a member of this organization');
+    if (existing.rows[0]?.status === 'active')
+      throw conflict('User is already a member of this organization');
     await db.query(
       `insert into public.organization_users (organization_id, user_id, status, added_by)
        values ($1, $2, 'active', $3)
@@ -140,12 +152,22 @@ export async function addTenantUser(
       [organizationId, userId, role.id, manager.user.id],
     );
     await recordAudit(db, {
-      actor: manager, organizationId, action: AuditAction.TENANT_USER_ADDED, targetType: 'user', targetId: userId,
-      metadata: { email: input.email }, request,
+      actor: manager,
+      organizationId,
+      action: AuditAction.TENANT_USER_ADDED,
+      targetType: 'user',
+      targetId: userId,
+      metadata: { email: input.email },
+      request,
     });
     await recordAudit(db, {
-      actor: manager, organizationId, action: AuditAction.TENANT_ROLE_ASSIGNED, targetType: 'user', targetId: userId,
-      metadata: { role: input.roleKey }, request,
+      actor: manager,
+      organizationId,
+      action: AuditAction.TENANT_ROLE_ASSIGNED,
+      targetType: 'user',
+      targetId: userId,
+      metadata: { role: input.roleKey },
+      request,
     });
     return { userId };
   });
@@ -182,20 +204,33 @@ export async function changeTenantUserRole(
     const current = await currentRoleKeysAndPerms(db, organizationId, userId);
     for (const c of current) assertCanManageRole(manager, new Set(c.perms));
 
-    await db.query(`delete from public.organization_user_roles where organization_id = $1 and user_id = $2`, [organizationId, userId]);
+    await db.query(
+      `delete from public.organization_user_roles where organization_id = $1 and user_id = $2`,
+      [organizationId, userId],
+    );
     await db.query(
       `insert into public.organization_user_roles (organization_id, user_id, role_id, assigned_by) values ($1, $2, $3, $4)`,
       [organizationId, userId, role.id, manager.user.id],
     );
     await assertOwnerRemains(db, organizationId);
     await recordAudit(db, {
-      actor: manager, organizationId, action: AuditAction.TENANT_ROLE_ASSIGNED, targetType: 'user', targetId: userId,
-      metadata: { role: roleKey, previousRoles: current.map((c) => c.key) }, request,
+      actor: manager,
+      organizationId,
+      action: AuditAction.TENANT_ROLE_ASSIGNED,
+      targetType: 'user',
+      targetId: userId,
+      metadata: { role: roleKey, previousRoles: current.map((c) => c.key) },
+      request,
     });
   });
 }
 
-export async function removeTenantUser(manager: UserManager, organizationId: string, userId: string, request?: RequestMeta) {
+export async function removeTenantUser(
+  manager: UserManager,
+  organizationId: string,
+  userId: string,
+  request?: RequestMeta,
+) {
   orgOf(manager, organizationId);
   return withServiceTx(async (db) => {
     const current = await currentRoleKeysAndPerms(db, organizationId, userId);
@@ -206,13 +241,23 @@ export async function removeTenantUser(manager: UserManager, organizationId: str
     );
     if (!member.rowCount) throw notFound('User is not a member of this organization');
     for (const c of current) assertCanManageRole(manager, new Set(c.perms));
-    if (manager.kind === 'platform' && !manager.permissions.has('platform.users.manage')) throw forbidden();
-    if (manager.kind === 'tenant' && !manager.permissions.has('tenant.users.write')) throw forbidden();
-    await db.query(`delete from public.organization_user_roles where organization_id = $1 and user_id = $2`, [organizationId, userId]);
+    if (manager.kind === 'platform' && !manager.permissions.has('platform.users.manage'))
+      throw forbidden();
+    if (manager.kind === 'tenant' && !manager.permissions.has('tenant.users.write'))
+      throw forbidden();
+    await db.query(
+      `delete from public.organization_user_roles where organization_id = $1 and user_id = $2`,
+      [organizationId, userId],
+    );
     await assertOwnerRemains(db, organizationId);
     await recordAudit(db, {
-      actor: manager, organizationId, action: AuditAction.TENANT_USER_REMOVED, targetType: 'user', targetId: userId,
-      metadata: { previousRoles: current.map((c) => c.key) }, request,
+      actor: manager,
+      organizationId,
+      action: AuditAction.TENANT_USER_REMOVED,
+      targetType: 'user',
+      targetId: userId,
+      metadata: { previousRoles: current.map((c) => c.key) },
+      request,
     });
   });
 }

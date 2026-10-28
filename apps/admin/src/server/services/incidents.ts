@@ -42,8 +42,13 @@ export async function createIncident(
     );
     const id = r.rows[0]!.id;
     await recordAudit(db, {
-      actor, organizationId: actor.organizationId, action: AuditAction.INCIDENT_CREATED, targetType: 'incident', targetId: id,
-      metadata: { title: input.title, severity: input.severity }, request,
+      actor,
+      organizationId: actor.organizationId,
+      action: AuditAction.INCIDENT_CREATED,
+      targetType: 'incident',
+      targetId: id,
+      metadata: { title: input.title, severity: input.severity },
+      request,
     });
     return { id };
   });
@@ -74,8 +79,12 @@ export async function getIncident(actor: TenantActor, incidentId: string, reques
   if (data.artifacts.some((a) => a.artifact_type === 'browser_history')) {
     await withServiceTx((db) =>
       recordAudit(db, {
-        actor, organizationId: actor.organizationId, action: AuditAction.INCIDENT_EVIDENCE_VIEWED, targetType: 'incident',
-        targetId: incidentId, request,
+        actor,
+        organizationId: actor.organizationId,
+        action: AuditAction.INCIDENT_EVIDENCE_VIEWED,
+        targetType: 'incident',
+        targetId: incidentId,
+        request,
       }),
     );
   }
@@ -111,14 +120,22 @@ export async function getIncident(actor: TenantActor, incidentId: string, reques
 }
 
 /** Required permission per command type. History needs request AND approve (two-person flow is Phase 2). */
-function assertCommandPermission(actor: TenantActor, type: EndpointCommandType, incidentId: string | undefined) {
+function assertCommandPermission(
+  actor: TenantActor,
+  type: EndpointCommandType,
+  incidentId: string | undefined,
+) {
   const need = (p: Parameters<typeof actor.permissions.has>[0]) => {
     if (!actor.permissions.has(p)) throw forbidden(`Missing permission ${p}`);
   };
   if (type === 'COLLECT_BROWSER_HISTORY') {
     need('tenant.incident.history.request');
     need('tenant.incident.history.approve');
-    if (!incidentId) throw new AppError('VALIDATION_FAILED', 'Browser history collection must be tied to an incident');
+    if (!incidentId)
+      throw new AppError(
+        'VALIDATION_FAILED',
+        'Browser history collection must be tied to an incident',
+      );
   } else if (incidentId) {
     need('tenant.incident.create');
   } else {
@@ -128,36 +145,69 @@ function assertCommandPermission(actor: TenantActor, type: EndpointCommandType, 
 
 export async function issueEndpointCommand(
   actor: TenantActor,
-  input: { deviceId: string; commandType: EndpointCommandType; incidentId?: string; payload: Record<string, unknown> },
+  input: {
+    deviceId: string;
+    commandType: EndpointCommandType;
+    incidentId?: string;
+    payload: Record<string, unknown>;
+  },
   request?: RequestMeta,
 ) {
   assertCommandPermission(actor, input.commandType, input.incidentId);
   let payload = input.payload;
   if (input.commandType === 'COLLECT_BROWSER_HISTORY') {
-    payload = CollectBrowserHistoryPayloadSchema.parse({ ...input.payload, incidentId: input.incidentId, approvedBy: actor.user.id });
+    payload = CollectBrowserHistoryPayloadSchema.parse({
+      ...input.payload,
+      incidentId: input.incidentId,
+      approvedBy: actor.user.id,
+    });
   } else {
     payload = {};
   }
   return withServiceTx(async (db) => {
-    const d = await db.query(`select 1 from public.devices where id = $1 and organization_id = $2 and status = 'active'`, [input.deviceId, actor.organizationId]);
+    const d = await db.query(
+      `select 1 from public.devices where id = $1 and organization_id = $2 and status = 'active'`,
+      [input.deviceId, actor.organizationId],
+    );
     if (!d.rowCount) throw notFound('Device not found');
     if (input.incidentId) {
-      const i = await db.query(`select 1 from public.incidents where id = $1 and organization_id = $2`, [input.incidentId, actor.organizationId]);
+      const i = await db.query(
+        `select 1 from public.incidents where id = $1 and organization_id = $2`,
+        [input.incidentId, actor.organizationId],
+      );
       if (!i.rowCount) throw notFound('Incident not found');
     }
     const r = await db.query<{ id: string }>(
       `insert into public.endpoint_commands (organization_id, device_id, incident_id, command_type, payload, issued_by,
                                              approved_by, expires_at)
        values ($1, $2, $3, $4, $5, $6, $7, now() + make_interval(hours => $8)) returning id`,
-      [actor.organizationId, input.deviceId, input.incidentId ?? null, input.commandType, JSON.stringify(payload),
-       actor.user.id, input.commandType === 'COLLECT_BROWSER_HISTORY' ? actor.user.id : null, COMMAND_TTL_HOURS],
+      [
+        actor.organizationId,
+        input.deviceId,
+        input.incidentId ?? null,
+        input.commandType,
+        JSON.stringify(payload),
+        actor.user.id,
+        input.commandType === 'COLLECT_BROWSER_HISTORY' ? actor.user.id : null,
+        COMMAND_TTL_HOURS,
+      ],
     );
     const id = r.rows[0]!.id;
     await recordAudit(db, {
-      actor, organizationId: actor.organizationId,
-      action: input.commandType === 'COLLECT_BROWSER_HISTORY' ? AuditAction.HISTORY_COLLECTION_REQUESTED : AuditAction.ENDPOINT_COMMAND_ISSUED,
-      targetType: 'endpoint_command', targetId: id,
-      metadata: { commandType: input.commandType, deviceId: input.deviceId, incidentId: input.incidentId ?? null, payload },
+      actor,
+      organizationId: actor.organizationId,
+      action:
+        input.commandType === 'COLLECT_BROWSER_HISTORY'
+          ? AuditAction.HISTORY_COLLECTION_REQUESTED
+          : AuditAction.ENDPOINT_COMMAND_ISSUED,
+      targetType: 'endpoint_command',
+      targetId: id,
+      metadata: {
+        commandType: input.commandType,
+        deviceId: input.deviceId,
+        incidentId: input.incidentId ?? null,
+        payload,
+      },
       request,
     });
     return { id };
@@ -165,13 +215,22 @@ export async function issueEndpointCommand(
 }
 
 /** Export history evidence (requires tenant.incident.history.export; audited). */
-export async function exportIncidentEvidence(actor: TenantActor, incidentId: string, request?: RequestMeta) {
+export async function exportIncidentEvidence(
+  actor: TenantActor,
+  incidentId: string,
+  request?: RequestMeta,
+) {
   if (!actor.permissions.has('tenant.incident.history.export')) throw forbidden();
   const data = await getIncident(actor, incidentId, request);
   await withServiceTx((db) =>
     recordAudit(db, {
-      actor, organizationId: actor.organizationId, action: AuditAction.INCIDENT_EVIDENCE_EXPORTED, targetType: 'incident',
-      targetId: incidentId, metadata: { artifactCount: data.artifacts.length }, request,
+      actor,
+      organizationId: actor.organizationId,
+      action: AuditAction.INCIDENT_EVIDENCE_EXPORTED,
+      targetType: 'incident',
+      targetId: incidentId,
+      metadata: { artifactCount: data.artifacts.length },
+      request,
     }),
   );
   return data;

@@ -25,7 +25,9 @@ export function serverEnv(): ServerEnv {
   if (!cached) {
     const parsed = EnvSchema.safeParse(process.env);
     if (!parsed.success) {
-      throw new Error(`Invalid server environment: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`);
+      throw new Error(
+        `Invalid server environment: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
+      );
     }
     cached = parsed.data;
   }
@@ -34,6 +36,9 @@ export function serverEnv(): ServerEnv {
 
 export function allowedOrigins(): string[] {
   const env = serverEnv();
-  const list = (env.ALLOWED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const list = (env.ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   return list.length ? list : [new URL(env.NEXT_PUBLIC_APP_BASE_URL).origin];
 }

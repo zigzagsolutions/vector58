@@ -5,10 +5,18 @@ export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString('en-US', {
-    year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-    timeZone: 'UTC',
-  }) + ' UTC';
+  return (
+    new Date(iso).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZone: 'UTC',
+    }) + ' UTC'
+  );
 }
 
 export function relativeTime(iso: string | null | undefined, now = Date.now()): string {

@@ -21,19 +21,55 @@ export default async function TenantUsersPage({ params }: { params: Promise<{ or
   const assignable = Object.values(TENANT_ROLES).filter((r) => canAssignRole(actor.permissions, r));
   return (
     <>
-      <PageHeader title="Users" description="People with access to this organization and their roles." />
+      <PageHeader
+        title="Users"
+        description="People with access to this organization and their roles."
+      />
       <div className="grid gap-5 xl:grid-cols-4">
         <Card className="xl:col-span-3">
           <Table>
-            <THead><TR><TH>User</TH><TH>Role</TH><TH>Status</TH><TH>Added</TH><TH /></TR></THead>
+            <THead>
+              <TR>
+                <TH>User</TH>
+                <TH>Role</TH>
+                <TH>Status</TH>
+                <TH>Added</TH>
+                <TH />
+              </TR>
+            </THead>
             <TBody>
               {users.map((u) => (
                 <TR key={u.userId}>
-                  <TD>{u.displayName ?? u.email}<div className="text-xs text-muted">{u.email}</div></TD>
-                  <TD>{canWrite && u.userId !== actor.user.id ? <RoleSelect orgId={orgId} userId={u.userId} current={u.roles[0] ?? ''} roles={assignable.map((r) => ({ key: r.key, name: r.name }))} /> : u.roles.join(', ')}</TD>
-                  <TD><StatusBadge status={u.status} /></TD>
+                  <TD>
+                    {u.displayName ?? u.email}
+                    <div className="text-xs text-muted">{u.email}</div>
+                  </TD>
+                  <TD>
+                    {canWrite && u.userId !== actor.user.id ? (
+                      <RoleSelect
+                        orgId={orgId}
+                        userId={u.userId}
+                        current={u.roles[0] ?? ''}
+                        roles={assignable.map((r) => ({ key: r.key, name: r.name }))}
+                      />
+                    ) : (
+                      u.roles.join(', ')
+                    )}
+                  </TD>
+                  <TD>
+                    <StatusBadge status={u.status} />
+                  </TD>
                   <TD>{formatDateTime(u.addedAt)}</TD>
-                  <TD>{canWrite && u.userId !== actor.user.id ? <ActionButton label="Remove" variant="ghost" confirm={`Remove ${u.email} from this organization?`} action={removeUserAction.bind(null, orgId, u.userId)} /> : null}</TD>
+                  <TD>
+                    {canWrite && u.userId !== actor.user.id ? (
+                      <ActionButton
+                        label="Remove"
+                        variant="ghost"
+                        confirm={`Remove ${u.email} from this organization?`}
+                        action={removeUserAction.bind(null, orgId, u.userId)}
+                      />
+                    ) : null}
+                  </TD>
                 </TR>
               ))}
             </TBody>
@@ -41,12 +77,26 @@ export default async function TenantUsersPage({ params }: { params: Promise<{ or
         </Card>
         {canWrite ? (
           <Card>
-            <CardHeader><CardTitle>Add user</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Add user</CardTitle>
+            </CardHeader>
             <CardContent>
               <ActionForm action={addUserAction.bind(null, orgId)} submitLabel="Add user">
-                <Field label="Email" htmlFor="email"><Input id="email" name="email" type="email" required /></Field>
-                <Field label="Role" htmlFor="roleKey" hint="You can only grant roles within your own permissions.">
-                  <Select id="roleKey" name="roleKey">{assignable.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}</Select>
+                <Field label="Email" htmlFor="email">
+                  <Input id="email" name="email" type="email" required />
+                </Field>
+                <Field
+                  label="Role"
+                  htmlFor="roleKey"
+                  hint="You can only grant roles within your own permissions."
+                >
+                  <Select id="roleKey" name="roleKey">
+                    {assignable.map((r) => (
+                      <option key={r.key} value={r.key}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </Select>
                 </Field>
               </ActionForm>
             </CardContent>

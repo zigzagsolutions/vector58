@@ -12,6 +12,7 @@ export default tseslint.config(
       '**/build/**',
       '**/coverage/**',
       'services/windows-agent/**',
+      'supabase/functions/**',
       '**/*.d.ts',
     ],
   },
@@ -19,13 +20,17 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       '@typescript-eslint/consistent-type-imports': 'error',
       'no-restricted-syntax': [
         'error',
         {
           selector: "MemberExpression[property.name='isAdmin']",
-          message: 'Use granular permissions from @bsp/auth-permissions instead of an isAdmin flag.',
+          message:
+            'Use granular permissions from @bsp/auth-permissions instead of an isAdmin flag.',
         },
       ],
     },

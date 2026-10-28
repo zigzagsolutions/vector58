@@ -11,15 +11,24 @@ beforeEach(() => {
   state = new ExtensionState(platform);
 });
 
-const blocked = (url = 'https://phase1-block-test.example/') => evaluate(platform.rules.values(), url).action === 'redirect';
+const blocked = (url = 'https://phase1-block-test.example/') =>
+  evaluate(platform.rules.values(), url).action === 'redirect';
 
 describe('applyPolicyUpdate', () => {
   it('applies a valid policy and records last-known-good metadata', async () => {
     const p = await makePolicy(1);
     const out = await applyPolicyUpdate(update(p), platform, state);
-    expect(out.status).toMatchObject({ status: 'applied', policyVersion: 1, ruleCount: p.rules.length });
+    expect(out.status).toMatchObject({
+      status: 'applied',
+      policyVersion: 1,
+      ruleCount: p.rules.length,
+    });
     expect(blocked()).toBe(true);
-    expect(await state.getPolicy()).toMatchObject({ policyVersion: 1, checksum: p.checksum, organizationId: p.organizationId });
+    expect(await state.getPolicy()).toMatchObject({
+      policyVersion: 1,
+      checksum: p.checksum,
+      organizationId: p.organizationId,
+    });
   });
 
   it('reports unchanged for the same version and checksum without touching DNR', async () => {
@@ -33,7 +42,11 @@ describe('applyPolicyUpdate', () => {
 
   it('rejects malformed messages and keeps existing rules', async () => {
     await applyPolicyUpdate(update(await makePolicy(1)), platform, state);
-    for (const bad of [null, { type: 'POLICY_UPDATE' }, { type: 'POLICY_UPDATE', policyVersion: 2, payload: { schemaVersion: 99 } }]) {
+    for (const bad of [
+      null,
+      { type: 'POLICY_UPDATE' },
+      { type: 'POLICY_UPDATE', policyVersion: 2, payload: { schemaVersion: 99 } },
+    ]) {
       const out = await applyPolicyUpdate(bad, platform, state);
       expect(out.status).toMatchObject({ status: 'failed', policyVersion: 1 });
       expect(blocked()).toBe(true);
@@ -43,7 +56,10 @@ describe('applyPolicyUpdate', () => {
   it('rejects a checksum mismatch (tampered payload) and keeps existing rules', async () => {
     await applyPolicyUpdate(update(await makePolicy(1)), platform, state);
     const p2 = await makePolicy(2);
-    const tampered = { ...p2, rules: p2.rules.filter((r) => r.value !== 'phase1-block-test.example') };
+    const tampered = {
+      ...p2,
+      rules: p2.rules.filter((r) => r.value !== 'phase1-block-test.example'),
+    };
     const out = await applyPolicyUpdate(update(tampered), platform, state);
     expect(out.status.status).toBe('failed');
     expect(out.error).toMatch(/checksum/i);
@@ -76,7 +92,16 @@ describe('applyPolicyUpdate', () => {
   it('removes rules dropped from a newer version and adds new ones', async () => {
     await applyPolicyUpdate(update(await makePolicy(1)), platform, state);
     const v2 = await makePolicy(2, {
-      tenantRules: [{ ruleType: 'BLOCK_DOMAIN', normalizedValue: 'new-block.example', priority: 100, enabled: true, category: 'custom', expiresAt: null }],
+      tenantRules: [
+        {
+          ruleType: 'BLOCK_DOMAIN',
+          normalizedValue: 'new-block.example',
+          priority: 100,
+          enabled: true,
+          category: 'custom',
+          expiresAt: null,
+        },
+      ],
     });
     const out = await applyPolicyUpdate(update(v2), platform, state);
     expect(out.status.status).toBe('applied');

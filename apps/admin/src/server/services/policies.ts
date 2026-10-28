@@ -1,6 +1,11 @@
 import 'server-only';
 import { compilePolicy, type GlobalIndicatorInput, type TenantRuleInput } from '@bsp/policy-engine';
-import type { CreatePolicyRequest, CreateRuleRequest, PolicyPayload, PolicyRuleType } from '@bsp/policy-types';
+import type {
+  CreatePolicyRequest,
+  CreateRuleRequest,
+  PolicyPayload,
+  PolicyRuleType,
+} from '@bsp/policy-types';
 import { AppError, conflict, notFound } from '@bsp/shared';
 import { hostnameMatchesDomain, normalizeIndicator, normalizedHash } from '@bsp/url-normalizer';
 import { AuditAction, recordAudit } from '../audit';
@@ -102,19 +107,17 @@ export async function getPolicyDetail(actor: TenantActor, policyId: string) {
         currentVersion: policy.current_version_number as number | null,
       },
       rules: rules.rows.map(mapRule),
-      versions: versions.rows.map(
-        (v): VersionRow => ({
-          id: v.id,
-          versionNumber: v.version_number,
-          schemaVersion: v.schema_version,
-          ruleCount: v.rule_count,
-          checksum: v.checksum,
-          status: v.status,
-          createdBy: v.created_by,
-          createdByEmail: v.created_by_email,
-          publishedAt: v.published_at.toISOString(),
-        }),
-      ),
+      versions: versions.rows.map((v): VersionRow => ({
+        id: v.id,
+        versionNumber: v.version_number,
+        schemaVersion: v.schema_version,
+        ruleCount: v.rule_count,
+        checksum: v.checksum,
+        status: v.status,
+        createdBy: v.created_by,
+        createdByEmail: v.created_by_email,
+        publishedAt: v.published_at.toISOString(),
+      })),
     };
   });
 }
@@ -136,17 +139,32 @@ function mapRule(r: Record<string, unknown>): RuleRow {
   };
 }
 
-export async function createPolicy(actor: TenantActor, input: CreatePolicyRequest, request?: RequestMeta) {
+export async function createPolicy(
+  actor: TenantActor,
+  input: CreatePolicyRequest,
+  request?: RequestMeta,
+) {
   return withServiceTx(async (db) => {
     const r = await db.query<{ id: string }>(
       `insert into public.policies (organization_id, name, description, include_global_threats, created_by)
        values ($1, $2, $3, $4, $5) returning id`,
-      [actor.organizationId, input.name, input.description ?? null, input.includeGlobalThreats, actor.user.id],
+      [
+        actor.organizationId,
+        input.name,
+        input.description ?? null,
+        input.includeGlobalThreats,
+        actor.user.id,
+      ],
     );
     const id = r.rows[0]!.id;
     await recordAudit(db, {
-      actor, organizationId: actor.organizationId, action: AuditAction.POLICY_CREATED, targetType: 'policy', targetId: id,
-      metadata: { name: input.name }, request,
+      actor,
+      organizationId: actor.organizationId,
+      action: AuditAction.POLICY_CREATED,
+      targetType: 'policy',
+      targetId: id,
+      metadata: { name: input.name },
+      request,
     });
     return { id };
   });
@@ -173,7 +191,10 @@ export async function addRule(actor: TenantActor, input: CreateRuleRequest, requ
   const kind = RULE_KIND[input.ruleType];
   const normalized = normalizeIndicator(kind, input.value);
   if (!normalized.ok) {
-    throw new AppError('VALIDATION_FAILED', normalized.error.message, { code: normalized.error.code, field: 'value' });
+    throw new AppError('VALIDATION_FAILED', normalized.error.message, {
+      code: normalized.error.code,
+      field: 'value',
+    });
   }
   const value = normalized.value.value;
   const hash = await normalizedHash(kind, value);
@@ -183,7 +204,10 @@ export async function addRule(actor: TenantActor, input: CreateRuleRequest, requ
 
   return withServiceTx(async (db) => {
     const policyId = input.policyId ?? (await defaultPolicyId(db, actor.organizationId));
-    const p = await db.query(`select 1 from public.policies where id = $1 and organization_id = $2`, [policyId, actor.organizationId]);
+    const p = await db.query(
+      `select 1 from public.policies where id = $1 and organization_id = $2`,
+      [policyId, actor.organizationId],
+    );
     if (!p.rowCount) throw notFound('Policy not found');
     const dup = await db.query(
       `select id from public.policy_rules
@@ -196,17 +220,35 @@ export async function addRule(actor: TenantActor, input: CreateRuleRequest, requ
       `insert into public.policy_rules (organization_id, policy_id, rule_type, normalized_value, normalized_hash,
                                         priority, category, reason, created_by, expires_at)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *`,
-      [actor.organizationId, policyId, input.ruleType, value, hash, input.priority, input.category,
-       input.reason ?? null, actor.user.id, input.expiresAt ?? null],
+      [
+        actor.organizationId,
+        policyId,
+        input.ruleType,
+        value,
+        hash,
+        input.priority,
+        input.category,
+        input.reason ?? null,
+        actor.user.id,
+        input.expiresAt ?? null,
+      ],
     );
     const rule = mapRule(r.rows[0]);
     await recordAudit(db, {
       actor,
       organizationId: actor.organizationId,
-      action: input.ruleType.startsWith('BLOCK') ? AuditAction.BLOCK_RULE_CREATED : AuditAction.ALLOW_RULE_CREATED,
+      action: input.ruleType.startsWith('BLOCK')
+        ? AuditAction.BLOCK_RULE_CREATED
+        : AuditAction.ALLOW_RULE_CREATED,
       targetType: 'policy_rule',
       targetId: rule.id,
-      metadata: { policyId, ruleType: input.ruleType, value, input: input.value, category: input.category },
+      metadata: {
+        policyId,
+        ruleType: input.ruleType,
+        value,
+        input: input.value,
+        category: input.category,
+      },
       request,
     });
     return rule;
@@ -227,7 +269,9 @@ export async function removeRule(actor: TenantActor, ruleId: string, request?: R
     await recordAudit(db, {
       actor,
       organizationId: actor.organizationId,
-      action: String(row.rule_type).startsWith('BLOCK') ? AuditAction.BLOCK_RULE_REMOVED : AuditAction.ALLOW_RULE_REMOVED,
+      action: String(row.rule_type).startsWith('BLOCK')
+        ? AuditAction.BLOCK_RULE_REMOVED
+        : AuditAction.ALLOW_RULE_REMOVED,
       targetType: 'policy_rule',
       targetId: ruleId,
       metadata: { policyId: row.policy_id, ruleType: row.rule_type, value: row.normalized_value },
@@ -237,7 +281,10 @@ export async function removeRule(actor: TenantActor, ruleId: string, request?: R
 }
 
 /** Active global indicators minus the platform-wide safe list. */
-async function loadGlobalIndicators(db: Db, minConfidence: number): Promise<GlobalIndicatorInput[]> {
+async function loadGlobalIndicators(
+  db: Db,
+  minConfidence: number,
+): Promise<GlobalIndicatorInput[]> {
   const indicators = await db.query(
     `select indicator_type, normalized_value, threat_category, confidence, status, expires_at
      from public.threat_indicators where status = 'active' and confidence >= $1
@@ -247,12 +294,17 @@ async function loadGlobalIndicators(db: Db, minConfidence: number): Promise<Glob
   const allow = await db.query<{ entry_type: string; normalized_value: string }>(
     `select entry_type, normalized_value from public.allowlist_entries where organization_id is null`,
   );
-  const safeDomains = allow.rows.filter((a) => a.entry_type === 'domain').map((a) => a.normalized_value);
-  const safeUrls = new Set(allow.rows.filter((a) => a.entry_type === 'exact_url').map((a) => a.normalized_value));
+  const safeDomains = allow.rows
+    .filter((a) => a.entry_type === 'domain')
+    .map((a) => a.normalized_value);
+  const safeUrls = new Set(
+    allow.rows.filter((a) => a.entry_type === 'exact_url').map((a) => a.normalized_value),
+  );
   return indicators.rows
     .filter((i) => {
       if (i.indicator_type === 'exact_url' && safeUrls.has(i.normalized_value)) return false;
-      const host = i.indicator_type === 'domain' ? i.normalized_value : new URL(i.normalized_value).hostname;
+      const host =
+        i.indicator_type === 'domain' ? i.normalized_value : new URL(i.normalized_value).hostname;
       return !safeDomains.some((d) => hostnameMatchesDomain(host, d));
     })
     .map((i) => ({
@@ -299,7 +351,9 @@ export async function publishPolicy(actor: TenantActor, policyId: string, reques
       category: r.category,
       expiresAt: r.expires_at?.toISOString() ?? null,
     }));
-    const globalIndicators = policy.include_global_threats ? await loadGlobalIndicators(db, policy.min_global_confidence) : [];
+    const globalIndicators = policy.include_global_threats
+      ? await loadGlobalIndicators(db, policy.min_global_confidence)
+      : [];
 
     const { payload, stats } = await compilePolicy({
       organizationId: actor.organizationId,
@@ -307,15 +361,27 @@ export async function publishPolicy(actor: TenantActor, policyId: string, reques
       generatedAt: new Date().toISOString(),
       tenantRules,
       globalIndicators,
-      config: { includeGlobalThreats: policy.include_global_threats, minGlobalConfidence: policy.min_global_confidence },
+      config: {
+        includeGlobalThreats: policy.include_global_threats,
+        minGlobalConfidence: policy.min_global_confidence,
+      },
     });
 
     const v = await db.query<{ id: string; published_at: Date }>(
       `insert into public.policy_versions (organization_id, policy_id, version_number, schema_version, rule_count,
                                            checksum, compiled_payload, compiler_stats, created_by)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id, published_at`,
-      [actor.organizationId, policyId, versionNumber, payload.schemaVersion, payload.rules.length, payload.checksum,
-       JSON.stringify(payload), JSON.stringify(stats), actor.user.id],
+      [
+        actor.organizationId,
+        policyId,
+        versionNumber,
+        payload.schemaVersion,
+        payload.rules.length,
+        payload.checksum,
+        JSON.stringify(payload),
+        JSON.stringify(stats),
+        actor.user.id,
+      ],
     );
     const versionId = v.rows[0]!.id;
     await db.query(
@@ -328,8 +394,18 @@ export async function publishPolicy(actor: TenantActor, policyId: string, reques
       [policyId, versionNumber, versionId],
     );
     await recordAudit(db, {
-      actor, organizationId: actor.organizationId, action: AuditAction.POLICY_PUBLISHED, targetType: 'policy_version',
-      targetId: versionId, metadata: { policyId, versionNumber, checksum: payload.checksum, ruleCount: payload.rules.length, stats },
+      actor,
+      organizationId: actor.organizationId,
+      action: AuditAction.POLICY_PUBLISHED,
+      targetType: 'policy_version',
+      targetId: versionId,
+      metadata: {
+        policyId,
+        versionNumber,
+        checksum: payload.checksum,
+        ruleCount: payload.rules.length,
+        stats,
+      },
       request,
     });
     return {

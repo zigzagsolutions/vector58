@@ -10,7 +10,10 @@ export interface IdentityDirectory {
 }
 
 async function findByEmail(db: Db, email: string): Promise<string | null> {
-  const r = await db.query<{ id: string }>(`select id from public.profiles where lower(email) = lower($1)`, [email]);
+  const r = await db.query<{ id: string }>(
+    `select id from public.profiles where lower(email) = lower($1)`,
+    [email],
+  );
   return r.rows[0]?.id ?? null;
 }
 
@@ -19,7 +22,10 @@ export const existingUsersOnlyDirectory: IdentityDirectory = {
   async findOrInviteUser(db, email) {
     const id = await findByEmail(db, email);
     if (!id) {
-      throw new AppError('NOT_FOUND', `No account exists for ${email}. Ask them to sign up first, or configure invitations.`);
+      throw new AppError(
+        'NOT_FOUND',
+        `No account exists for ${email}. Ask them to sign up first, or configure invitations.`,
+      );
     }
     return id;
   },
@@ -39,9 +45,16 @@ export function supabaseIdentityDirectory(): IdentityDirectory {
       const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
         redirectTo: `${env.NEXT_PUBLIC_APP_BASE_URL}/login`,
       });
-      if (error || !data.user) throw new AppError('INTERNAL', `Could not invite ${email}: ${error?.message ?? 'unknown error'}`);
+      if (error || !data.user)
+        throw new AppError(
+          'INTERNAL',
+          `Could not invite ${email}: ${error?.message ?? 'unknown error'}`,
+        );
       // The auth trigger creates the profile in the auth transaction; ensure it exists for ours.
-      await db.query(`insert into public.profiles (id, email) values ($1, $2) on conflict (id) do nothing`, [data.user.id, email]);
+      await db.query(
+        `insert into public.profiles (id, email) values ($1, $2) on conflict (id) do nothing`,
+        [data.user.id, email],
+      );
       return data.user.id;
     },
   };

@@ -28,7 +28,8 @@ export interface PipelineOptions {
   readonly now?: Date;
 }
 
-const guessType = (value: string): IndicatorType => (/^[a-z][a-z0-9+.-]*:\/\//i.test(value.trim()) ? 'exact_url' : 'domain');
+const guessType = (value: string): IndicatorType =>
+  /^[a-z][a-z0-9+.-]*:\/\//i.test(value.trim()) ? 'exact_url' : 'domain';
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
 /**
@@ -36,7 +37,10 @@ const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
  * validate -> normalize -> deduplicate -> score. (Store, update and expire
  * happen in the threats service inside one transaction.)
  */
-export async function processFeed(raw: readonly RawIndicator[], opts: PipelineOptions): Promise<PipelineReport> {
+export async function processFeed(
+  raw: readonly RawIndicator[],
+  opts: PipelineOptions,
+): Promise<PipelineReport> {
   const now = (opts.now ?? new Date()).toISOString();
   const seen = new Map<string, ProcessedIndicator>();
   let invalid = 0;
@@ -58,8 +62,14 @@ export async function processFeed(raw: readonly RawIndicator[], opts: PipelineOp
       suppressed++;
       continue;
     }
-    const category = ThreatCategorySchema.safeParse(r.category).success ? (r.category as ThreatCategory) : opts.defaultCategory;
-    const confidence = clamp(typeof r.confidence === 'number' && Number.isFinite(r.confidence) ? r.confidence : opts.defaultConfidence);
+    const category = ThreatCategorySchema.safeParse(r.category).success
+      ? (r.category as ThreatCategory)
+      : opts.defaultCategory;
+    const confidence = clamp(
+      typeof r.confidence === 'number' && Number.isFinite(r.confidence)
+        ? r.confidence
+        : opts.defaultConfidence,
+    );
     const key = `${type}:${n.value.value}`;
     const prev = seen.get(key);
     if (prev) {
@@ -78,5 +88,11 @@ export async function processFeed(raw: readonly RawIndicator[], opts: PipelineOp
       observedAt: r.observedAt ?? now,
     });
   }
-  return { fetched: raw.length, invalid, duplicates, suppressedBySafeList: suppressed, accepted: [...seen.values()] };
+  return {
+    fetched: raw.length,
+    invalid,
+    duplicates,
+    suppressedBySafeList: suppressed,
+    accepted: [...seen.values()],
+  };
 }

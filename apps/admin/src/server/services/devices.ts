@@ -60,18 +60,16 @@ async function load(db: Db, organizationId: string, deviceId?: string): Promise<
   return devices.rows.map((d) => {
     const own = clients.rows
       .filter((c) => c.device_id === d.id)
-      .map(
-        (c): BrowserClientRow => ({
-          clientId: c.client_id,
-          browser: c.browser,
-          browserVersion: c.browser_version,
-          extensionVersion: c.extension_version,
-          policyVersion: c.policy_version,
-          nativeConnected: c.native_connected,
-          dnrRuleCount: c.dnr_rule_count,
-          lastSeenAt: c.last_seen_at.toISOString(),
-        }),
-      );
+      .map((c): BrowserClientRow => ({
+        clientId: c.client_id,
+        browser: c.browser,
+        browserVersion: c.browser_version,
+        extensionVersion: c.extension_version,
+        policyVersion: c.policy_version,
+        nativeConnected: c.native_connected,
+        dnrRuleCount: c.dnr_rule_count,
+        lastSeenAt: c.last_seen_at.toISOString(),
+      }));
     const protection = computeProtectionStatus({
       status: d.status,
       enrolledAt: d.enrolled_at,
@@ -143,7 +141,12 @@ export async function getDevice(actor: TenantActor, deviceId: string) {
   });
 }
 
-export async function setDeviceStatus(actor: TenantActor, deviceId: string, status: 'active' | 'disabled', request?: RequestMeta) {
+export async function setDeviceStatus(
+  actor: TenantActor,
+  deviceId: string,
+  status: 'active' | 'disabled',
+  request?: RequestMeta,
+) {
   return withServiceTx(async (db) => {
     const r = await db.query(
       `update public.devices set status = $3,
@@ -155,7 +158,12 @@ export async function setDeviceStatus(actor: TenantActor, deviceId: string, stat
     if (!r.rowCount) throw notFound('Device not found');
     if (status === 'disabled') {
       await recordAudit(db, {
-        actor, organizationId: actor.organizationId, action: AuditAction.DEVICE_DISABLED, targetType: 'device', targetId: deviceId, request,
+        actor,
+        organizationId: actor.organizationId,
+        action: AuditAction.DEVICE_DISABLED,
+        targetType: 'device',
+        targetId: deviceId,
+        request,
       });
     }
   });

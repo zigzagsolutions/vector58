@@ -9,12 +9,21 @@ import type {
   SecurityEventBatch,
 } from '@bsp/policy-types';
 import { AppError, DEVICE_OFFLINE_AFTER_SECONDS, notFound } from '@bsp/shared';
-import { extractHostname, normalizeExactUrl, urlMatchesDomainRule, urlMatchesExactRule } from '@bsp/url-normalizer';
+import {
+  extractHostname,
+  normalizeExactUrl,
+  urlMatchesDomainRule,
+  urlMatchesExactRule,
+} from '@bsp/url-normalizer';
 import type { DeviceActor } from '../auth/types';
 import { withServiceTx, type Db } from '../db';
 import { latestPublishedPayload } from './policies';
 
-export async function recordHeartbeat(device: DeviceActor, hb: AgentHeartbeat, publicIp: string | null): Promise<HeartbeatResponse> {
+export async function recordHeartbeat(
+  device: DeviceActor,
+  hb: AgentHeartbeat,
+  publicIp: string | null,
+): Promise<HeartbeatResponse> {
   return withServiceTx(async (db) => {
     const prev = await db.query<{ last_heartbeat_at: Date | null }>(
       `select last_heartbeat_at from public.devices where id = $1 for update`,
@@ -24,8 +33,16 @@ export async function recordHeartbeat(device: DeviceActor, hb: AgentHeartbeat, p
       `update public.devices set hostname = $2, os_version = $3, agent_version = $4, local_ip = $5,
               public_ip = coalesce($6, public_ip), policy_version = $7, policy_checksum = $8, last_heartbeat_at = now()
        where id = $1`,
-      [device.deviceId, hb.hostname, hb.osVersion, hb.agentVersion, hb.localIp ?? null, publicIp, hb.policyVersion,
-       hb.policyChecksum ?? null],
+      [
+        device.deviceId,
+        hb.hostname,
+        hb.osVersion,
+        hb.agentVersion,
+        hb.localIp ?? null,
+        publicIp,
+        hb.policyVersion,
+        hb.policyChecksum ?? null,
+      ],
     );
     for (const c of hb.browserClients) {
       await db.query(
@@ -36,8 +53,17 @@ export async function recordHeartbeat(device: DeviceActor, hb: AgentHeartbeat, p
            browser = excluded.browser, browser_version = excluded.browser_version, extension_version = excluded.extension_version,
            policy_version = excluded.policy_version, native_connected = excluded.native_connected,
            dnr_rule_count = excluded.dnr_rule_count, last_seen_at = now()`,
-        [device.organizationId, device.deviceId, c.clientId, c.browser, c.browserVersion, c.extensionVersion,
-         c.policyVersion, c.nativeConnected, c.dnrRuleCount],
+        [
+          device.organizationId,
+          device.deviceId,
+          c.clientId,
+          c.browser,
+          c.browserVersion,
+          c.extensionVersion,
+          c.policyVersion,
+          c.nativeConnected,
+          c.dnrRuleCount,
+        ],
       );
     }
     // Record AGENT_HEARTBEAT as an event only on first contact or after an
@@ -48,8 +74,17 @@ export async function recordHeartbeat(device: DeviceActor, hb: AgentHeartbeat, p
         `insert into public.security_events (organization_id, device_id, source_event_id, event_type, occurred_at,
                                              agent_version, hostname, policy_version, details)
          values ($1, $2, gen_random_uuid(), 'AGENT_HEARTBEAT', now(), $3, $4, $5, $6)`,
-        [device.organizationId, device.deviceId, hb.agentVersion, hb.hostname, hb.policyVersion,
-         JSON.stringify({ resumed: Boolean(last), previousHeartbeat: last?.toISOString() ?? null })],
+        [
+          device.organizationId,
+          device.deviceId,
+          hb.agentVersion,
+          hb.hostname,
+          hb.policyVersion,
+          JSON.stringify({
+            resumed: Boolean(last),
+            previousHeartbeat: last?.toISOString() ?? null,
+          }),
+        ],
       );
     }
     const latest = await latestPublishedPayload(db, device.organizationId, device.policyId);
@@ -66,7 +101,10 @@ export async function recordHeartbeat(device: DeviceActor, hb: AgentHeartbeat, p
 }
 
 /** The client's current version is only a cache hint, never an authorization input. */
-export async function getDevicePolicy(device: DeviceActor, currentVersion: number | null): Promise<DevicePolicyResponse> {
+export async function getDevicePolicy(
+  device: DeviceActor,
+  currentVersion: number | null,
+): Promise<DevicePolicyResponse> {
   return withServiceTx(async (db) => {
     const latest = await latestPublishedPayload(db, device.organizationId, device.policyId);
     if (!latest) return { status: 'none' };
@@ -114,7 +152,11 @@ const ARTIFACT_FOR: Record<string, string | undefined> = {
   COLLECT_BROWSER_HISTORY: 'browser_history',
 };
 
-export async function submitCommandResult(device: DeviceActor, commandId: string, body: CommandResultRequest) {
+export async function submitCommandResult(
+  device: DeviceActor,
+  commandId: string,
+  body: CommandResultRequest,
+) {
   return withServiceTx(async (db) => {
     const r = await db.query(
       `select id, status, command_type, incident_id, organization_id from public.endpoint_commands
@@ -132,14 +174,25 @@ export async function submitCommandResult(device: DeviceActor, commandId: string
               completed_at = case when $2 in ('COMPLETED', 'FAILED') then now() else completed_at end,
               result = coalesce($3, result), error = $4
        where id = $1`,
-      [commandId, body.status, body.result ? JSON.stringify(body.result) : null, body.error ?? null],
+      [
+        commandId,
+        body.status,
+        body.result ? JSON.stringify(body.result) : null,
+        body.error ?? null,
+      ],
     );
     const artifactType = ARTIFACT_FOR[cmd.command_type];
     if (body.status === 'COMPLETED' && cmd.incident_id && artifactType && body.result) {
       await db.query(
         `insert into public.incident_artifacts (organization_id, incident_id, command_id, artifact_type, content)
          values ($1, $2, $3, $4, $5)`,
-        [cmd.organization_id, cmd.incident_id, commandId, artifactType, JSON.stringify(body.result)],
+        [
+          cmd.organization_id,
+          cmd.incident_id,
+          commandId,
+          artifactType,
+          JSON.stringify(body.result),
+        ],
       );
     }
     return { id: commandId, status: body.status };
@@ -187,10 +240,14 @@ export async function ingestSecurityEvents(device: DeviceActor, batch: SecurityE
         const rule = payload?.rules.find((r) => r.id === e.ruleId);
         if (rule) {
           category = rule.category;
-          const target = normalizedUrl ?? (normalizedDomain ? `https://${normalizedDomain}/` : null);
+          const target =
+            normalizedUrl ?? (normalizedDomain ? `https://${normalizedDomain}/` : null);
           details.verified = Boolean(
-            target && rule.action === 'block' &&
-              (rule.type === 'domain' ? urlMatchesDomainRule(target, rule.value) : urlMatchesExactRule(target, rule.value)),
+            target &&
+            rule.action === 'block' &&
+            (rule.type === 'domain'
+              ? urlMatchesDomainRule(target, rule.value)
+              : urlMatchesExactRule(target, rule.value)),
           );
           details.ruleValue = rule.value;
           details.ruleSource = rule.source;
@@ -205,10 +262,25 @@ export async function ingestSecurityEvents(device: DeviceActor, batch: SecurityE
             extension_version, agent_version, hostname, details)
          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
          on conflict (device_id, source_event_id) do nothing`,
-        [device.organizationId, device.deviceId, e.eventId, e.browserClientId ?? null, e.eventType,
-         clampTime(e.occurredAt), normalizedUrl, normalizedDomain, e.ruleId ?? null, e.policyVersion ?? null, category,
-         e.browser ?? null, e.browserVersion ?? null, e.extensionVersion ?? null, dev.rows[0]?.agent_version ?? null,
-         dev.rows[0]?.hostname ?? null, JSON.stringify(details)],
+        [
+          device.organizationId,
+          device.deviceId,
+          e.eventId,
+          e.browserClientId ?? null,
+          e.eventType,
+          clampTime(e.occurredAt),
+          normalizedUrl,
+          normalizedDomain,
+          e.ruleId ?? null,
+          e.policyVersion ?? null,
+          category,
+          e.browser ?? null,
+          e.browserVersion ?? null,
+          e.extensionVersion ?? null,
+          dev.rows[0]?.agent_version ?? null,
+          dev.rows[0]?.hostname ?? null,
+          JSON.stringify(details),
+        ],
       );
       if (r.rowCount) accepted++;
       else duplicates++;

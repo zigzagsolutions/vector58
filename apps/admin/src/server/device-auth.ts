@@ -15,7 +15,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  */
 export async function authenticateDevice(req: Request): Promise<DeviceActor> {
   const header = req.headers.get('authorization') ?? '';
-  const m = header.match(new RegExp(`^${DEVICE_AUTH_SCHEME}\\s+([0-9a-fA-F-]{36})\\.([A-Za-z0-9_-]{20,200})$`));
+  const m = header.match(
+    new RegExp(`^${DEVICE_AUTH_SCHEME}\\s+([0-9a-fA-F-]{36})\\.([A-Za-z0-9_-]{20,200})$`),
+  );
   if (!m || !UUID_RE.test(m[1]!)) throw unauthenticated('Device credentials required');
   const [, deviceId, secret] = m as unknown as [string, string, string];
 

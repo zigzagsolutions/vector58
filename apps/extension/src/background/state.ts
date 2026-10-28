@@ -54,10 +54,18 @@ export class ExtensionState {
   }
 
   async health(): Promise<HealthState> {
-    return (await this.p.storage.get<HealthState>(KEYS.health)) ?? { nativeConnected: false, lastError: null, lastPolicyStatus: null };
+    return (
+      (await this.p.storage.get<HealthState>(KEYS.health)) ?? {
+        nativeConnected: false,
+        lastError: null,
+        lastPolicyStatus: null,
+      }
+    );
   }
   updateHealth(patch: Partial<HealthState>) {
-    return this.exclusive(async () => this.p.storage.set(KEYS.health, { ...(await this.health()), ...patch }));
+    return this.exclusive(async () =>
+      this.p.storage.set(KEYS.health, { ...(await this.health()), ...patch }),
+    );
   }
 
   async queue(): Promise<ReportedSecurityEvent[]> {

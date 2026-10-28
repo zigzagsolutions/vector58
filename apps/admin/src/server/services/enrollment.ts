@@ -24,7 +24,10 @@ export async function listEnrollmentTokens(actor: TenantActor) {
     maxUses: t.max_uses as number,
     useCount: t.use_count as number,
     expiresAt: (t.expires_at as Date).toISOString(),
-    status: (t.expires_at as Date) < new Date() && t.status === 'active' ? 'expired' : (t.status as string),
+    status:
+      (t.expires_at as Date) < new Date() && t.status === 'active'
+        ? 'expired'
+        : (t.status as string),
     createdAt: (t.created_at as Date).toISOString(),
   }));
 }
@@ -40,17 +43,34 @@ export async function createEnrollmentToken(
     const r = await db.query<{ id: string; expires_at: Date }>(
       `insert into public.enrollment_tokens (organization_id, token_hash, token_prefix, description, max_uses, expires_at, created_by)
        values ($1, $2, $3, $4, $5, now() + make_interval(hours => $6), $7) returning id, expires_at`,
-      [actor.organizationId, sha256(token), token.slice(0, 12), input.description ?? null, input.maxUses, input.expiresInHours, actor.user.id],
+      [
+        actor.organizationId,
+        sha256(token),
+        token.slice(0, 12),
+        input.description ?? null,
+        input.maxUses,
+        input.expiresInHours,
+        actor.user.id,
+      ],
     );
     await recordAudit(db, {
-      actor, organizationId: actor.organizationId, action: AuditAction.ENROLLMENT_TOKEN_CREATED,
-      targetType: 'enrollment_token', targetId: r.rows[0]!.id, metadata: { maxUses: input.maxUses, expiresInHours: input.expiresInHours }, request,
+      actor,
+      organizationId: actor.organizationId,
+      action: AuditAction.ENROLLMENT_TOKEN_CREATED,
+      targetType: 'enrollment_token',
+      targetId: r.rows[0]!.id,
+      metadata: { maxUses: input.maxUses, expiresInHours: input.expiresInHours },
+      request,
     });
     return { id: r.rows[0]!.id, token, expiresAt: r.rows[0]!.expires_at.toISOString() };
   });
 }
 
-export async function revokeEnrollmentToken(actor: TenantActor, tokenId: string, request?: RequestMeta) {
+export async function revokeEnrollmentToken(
+  actor: TenantActor,
+  tokenId: string,
+  request?: RequestMeta,
+) {
   return withServiceTx(async (db) => {
     const r = await db.query(
       `update public.enrollment_tokens set status = 'revoked', revoked_at = now(), revoked_by = $3
@@ -59,19 +79,28 @@ export async function revokeEnrollmentToken(actor: TenantActor, tokenId: string,
     );
     if (!r.rowCount) throw notFound('Enrollment token not found');
     await recordAudit(db, {
-      actor, organizationId: actor.organizationId, action: AuditAction.ENROLLMENT_TOKEN_REVOKED, targetType: 'enrollment_token', targetId: tokenId, request,
+      actor,
+      organizationId: actor.organizationId,
+      action: AuditAction.ENROLLMENT_TOKEN_REVOKED,
+      targetType: 'enrollment_token',
+      targetId: tokenId,
+      request,
     });
   });
 }
 
-const invalidToken = () => new AppError('UNAUTHENTICATED', 'Enrollment token is invalid, expired or exhausted');
+const invalidToken = () =>
+  new AppError('UNAUTHENTICATED', 'Enrollment token is invalid, expired or exhausted');
 
 /**
  * Device enrollment. The tenant is derived ONLY from the enrollment token;
  * any organization hint from the device is ignored (and not even parsed).
  * Re-enrolling the same installation id rotates its credential.
  */
-export async function enrollDevice(input: EnrollmentRequest, publicIp: string | null): Promise<EnrollmentResponse> {
+export async function enrollDevice(
+  input: EnrollmentRequest,
+  publicIp: string | null,
+): Promise<EnrollmentResponse> {
   const deviceSecret = generateToken('bspd');
   return withServiceTx(async (db) => {
     const t = await db.query(
@@ -81,14 +110,29 @@ export async function enrollDevice(input: EnrollmentRequest, publicIp: string | 
       [sha256(input.enrollmentToken)],
     );
     const token = t.rows[0];
-    if (!token || token.status !== 'active' || token.expires_at <= new Date() || token.use_count >= token.max_uses) {
-      console.warn(JSON.stringify({ level: 'warn', msg: 'enrollment_rejected', reason: token ? 'inactive_or_expired' : 'unknown_token' }));
+    if (
+      !token ||
+      token.status !== 'active' ||
+      token.expires_at <= new Date() ||
+      token.use_count >= token.max_uses
+    ) {
+      console.warn(
+        JSON.stringify({
+          level: 'warn',
+          msg: 'enrollment_rejected',
+          reason: token ? 'inactive_or_expired' : 'unknown_token',
+        }),
+      );
       throw invalidToken();
     }
     if (token.org_status !== 'active') throw invalidToken();
     if (token.device_limit) {
-      const c = await db.query<{ n: number }>(`select count(*)::int as n from public.devices where organization_id = $1 and status = 'active'`, [token.organization_id]);
-      if ((c.rows[0]?.n ?? 0) >= token.device_limit) throw new AppError('FORBIDDEN', 'Device limit reached for this organization');
+      const c = await db.query<{ n: number }>(
+        `select count(*)::int as n from public.devices where organization_id = $1 and status = 'active'`,
+        [token.organization_id],
+      );
+      if ((c.rows[0]?.n ?? 0) >= token.device_limit)
+        throw new AppError('FORBIDDEN', 'Device limit reached for this organization');
     }
     const orgId: string = token.organization_id;
 
@@ -103,8 +147,19 @@ export async function enrollDevice(input: EnrollmentRequest, publicIp: string | 
          enrollment_token_id = excluded.enrollment_token_id, status = 'active', enrolled_at = now(),
          disabled_at = null, disabled_by = null
        returning id, enrolled_at, (xmax = 0) as inserted`,
-      [orgId, input.installationId, input.hostname, input.osVersion, input.agentVersion, input.localIp ?? null,
-       publicIp, JSON.stringify(input.machine ?? {}), sha256(deviceSecret), token.id, input.publicKey ?? null],
+      [
+        orgId,
+        input.installationId,
+        input.hostname,
+        input.osVersion,
+        input.agentVersion,
+        input.localIp ?? null,
+        publicIp,
+        JSON.stringify(input.machine ?? {}),
+        sha256(deviceSecret),
+        token.id,
+        input.publicKey ?? null,
+      ],
     );
     const device = d.rows[0]!;
     await db.query(
@@ -117,10 +172,23 @@ export async function enrollDevice(input: EnrollmentRequest, publicIp: string | 
       `insert into public.security_events (organization_id, device_id, source_event_id, event_type, occurred_at,
                                            agent_version, hostname, details)
        values ($1, $2, gen_random_uuid(), 'DEVICE_ENROLLED', now(), $3, $4, $5)`,
-      [orgId, device.id, input.agentVersion, input.hostname, JSON.stringify({ reenrolled: !device.inserted, publicIp })],
+      [
+        orgId,
+        device.id,
+        input.agentVersion,
+        input.hostname,
+        JSON.stringify({ reenrolled: !device.inserted, publicIp }),
+      ],
     );
     await recordAudit(db, {
-      actor: { kind: 'device', deviceId: device.id, organizationId: orgId, hostname: input.hostname, agentVersion: input.agentVersion, policyId: null },
+      actor: {
+        kind: 'device',
+        deviceId: device.id,
+        organizationId: orgId,
+        hostname: input.hostname,
+        agentVersion: input.agentVersion,
+        policyId: null,
+      },
       organizationId: orgId,
       action: AuditAction.DEVICE_ENROLLED,
       targetType: 'device',

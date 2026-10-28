@@ -39,13 +39,18 @@ async function main() {
 
   let verified: BlockReportResult | null;
   try {
-    verified = (await chrome.runtime.sendMessage({ type: 'BLOCK_PAGE_REPORT', ruleId, url })) as BlockReportResult | null;
+    verified = (await chrome.runtime.sendMessage({
+      type: 'BLOCK_PAGE_REPORT',
+      ruleId,
+      url,
+    })) as BlockReportResult | null;
   } catch {
     verified = null;
   }
   if (!verified) return;
   if (verified.domain) setText('site', verified.domain);
-  if (verified.category) setText('category', CATEGORY_LABELS[verified.category] ?? verified.category);
+  if (verified.category)
+    setText('category', CATEGORY_LABELS[verified.category] ?? verified.category);
   if (verified.ruleId) setText('rule', `#${verified.ruleId}`);
 }
 

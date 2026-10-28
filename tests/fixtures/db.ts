@@ -48,7 +48,10 @@ export async function asService<T>(fn: (c: pg.PoolClient) => Promise<T>): Promis
  * Run exactly like a PostgREST request from a signed-in browser: role
  * `authenticated` with the user's JWT claims. Always rolled back.
  */
-export async function asUser<T>(userId: string | null, fn: (c: pg.PoolClient) => Promise<T>): Promise<T> {
+export async function asUser<T>(
+  userId: string | null,
+  fn: (c: pg.PoolClient) => Promise<T>,
+): Promise<T> {
   const c = await getPool().connect();
   try {
     await c.query('begin');
@@ -63,7 +66,11 @@ export async function asUser<T>(userId: string | null, fn: (c: pg.PoolClient) =>
   }
 }
 
-export async function count(c: pg.PoolClient, sql: string, params: unknown[] = []): Promise<number> {
+export async function count(
+  c: pg.PoolClient,
+  sql: string,
+  params: unknown[] = [],
+): Promise<number> {
   const r = await c.query<{ n: string }>(`select count(*)::text as n from (${sql}) q`, params);
   return Number(r.rows[0]?.n ?? 0);
 }

@@ -114,7 +114,11 @@ export const PLATFORM_ROLES = {
     scope: 'platform',
     name: 'Platform Auditor',
     description: 'Reads the cross-tenant audit log. Cannot enter tenants.',
-    permissions: ['platform.tenants.read', 'platform.audit.read', 'platform.security.incidents.read'],
+    permissions: [
+      'platform.tenants.read',
+      'platform.audit.read',
+      'platform.security.incidents.read',
+    ],
     tenantContextPermissions: [],
   },
 } as const satisfies Record<string, PlatformRoleDefinition>;
@@ -162,7 +166,12 @@ export const TENANT_ROLES = {
     scope: 'tenant',
     name: 'Help Desk',
     description: 'Checks device health and blocked events for end users.',
-    permissions: ['tenant.users.read', 'tenant.devices.read', 'tenant.policy.read', 'tenant.events.read'],
+    permissions: [
+      'tenant.users.read',
+      'tenant.devices.read',
+      'tenant.policy.read',
+      'tenant.events.read',
+    ],
   },
 } as const satisfies Record<string, TenantRoleDefinition>;
 

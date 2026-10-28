@@ -27,12 +27,25 @@ export function json(body: unknown, init: ResponseInit = {}): Response {
 export function errorResponse(e: unknown): Response {
   if (isAppError(e)) {
     return json(
-      { error: { code: e.code, message: e.message, details: e.details ?? undefined }, apiVersion: API_VERSION },
+      {
+        error: { code: e.code, message: e.message, details: e.details ?? undefined },
+        apiVersion: API_VERSION,
+      },
       { status: STATUS[e.code] },
     );
   }
-  console.error(JSON.stringify({ level: 'error', msg: 'unhandled_api_error', error: String(e), stack: (e as Error)?.stack }));
-  return json({ error: { code: 'INTERNAL', message: 'Internal server error' }, apiVersion: API_VERSION }, { status: 500 });
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      msg: 'unhandled_api_error',
+      error: String(e),
+      stack: (e as Error)?.stack,
+    }),
+  );
+  return json(
+    { error: { code: 'INTERNAL', message: 'Internal server error' }, apiVersion: API_VERSION },
+    { status: 500 },
+  );
 }
 
 /** Wrap a handler so every thrown error becomes a versioned error envelope. */
@@ -82,7 +95,10 @@ const isIp = (s: string) => IPV4.test(s) || (s.includes(':') && IPV6.test(s));
  */
 export function clientIp(headers: Headers, mode = serverEnv().TRUSTED_PROXY_MODE): string | null {
   if (mode === 'none') return null;
-  const xff = (headers.get('x-forwarded-for') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const xff = (headers.get('x-forwarded-for') ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   let candidate: string | undefined;
   if (mode === 'vercel') {
     // Vercel's edge overwrites these headers; client-provided values are not forwarded.
