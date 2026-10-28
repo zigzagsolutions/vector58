@@ -22,3 +22,4 @@ services/windows-agent/artifacts/
 .vs/
 # local dev postgres
 .pgdata/
+*.tsbuildinfo
