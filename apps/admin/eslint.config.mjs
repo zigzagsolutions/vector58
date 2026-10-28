@@ -14,7 +14,6 @@ export default [
             {
               group: ['pg', '@/server/db'],
               message: 'Database access belongs in src/server services, not UI components.',
-              allowImportNames: [],
             },
           ],
         },

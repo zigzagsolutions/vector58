@@ -16,8 +16,18 @@ export interface TenantUserRow {
   addedAt: string;
 }
 
-export async function listTenantUsers(actor: TenantActor): Promise<TenantUserRow[]> {
-  const r = await withUserTx(actor.user.id, (db) =>
+export function listTenantUsers(actor: TenantActor): Promise<TenantUserRow[]> {
+  return queryTenantUsers(actor.user.id, actor.organizationId);
+}
+
+/** Platform directory view (RLS: platform.users.read). */
+export function listTenantUsersForPlatform(actor: PlatformActor, organizationId: string): Promise<TenantUserRow[]> {
+  if (!actor.permissions.has('platform.users.read')) throw forbidden();
+  return queryTenantUsers(actor.user.id, organizationId);
+}
+
+async function queryTenantUsers(userId: string, organizationId: string): Promise<TenantUserRow[]> {
+  const r = await withUserTx(userId, (db) =>
     db.query(
       `select ou.user_id, p.email, p.display_name, ou.status, ou.added_at,
               coalesce(array_agg(r.key order by r.key) filter (where r.key is not null), '{}') as roles
@@ -28,7 +38,7 @@ export async function listTenantUsers(actor: TenantActor): Promise<TenantUserRow
        where ou.organization_id = $1 and ou.status <> 'removed'
        group by ou.user_id, p.email, p.display_name, ou.status, ou.added_at
        order by p.email`,
-      [actor.organizationId],
+      [organizationId],
     ),
   );
   return r.rows.map((u) => ({
