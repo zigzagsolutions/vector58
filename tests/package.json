@@ -1,0 +1,27 @@
+{
+  "name": "@bsp/tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --config vitest.unit.config.ts",
+    "test:db": "vitest run --config vitest.db.config.ts",
+    "test:e2e": "playwright test --config browser-e2e/playwright.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@bsp/auth-permissions": "workspace:*",
+    "@bsp/policy-engine": "workspace:*",
+    "@bsp/policy-types": "workspace:*",
+    "@bsp/shared": "workspace:*",
+    "@bsp/url-normalizer": "workspace:*",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/pg": "^8.23.1",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5"
+  }
+}
