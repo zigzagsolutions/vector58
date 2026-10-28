@@ -1,0 +1,24 @@
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+!**/.env.example
+.vercel
+supabase/.temp/
+supabase/.branches/
+test-results/
+playwright-report/
+# .NET
+services/windows-agent/**/bin/
+services/windows-agent/**/obj/
+services/windows-agent/artifacts/
+*.user
+.vs/
+# local dev postgres
+.pgdata/

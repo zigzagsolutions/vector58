@@ -1,0 +1,10 @@
+node_modules
+dist
+.next
+.turbo
+coverage
+pnpm-lock.yaml
+services/windows-agent/**/bin
+services/windows-agent/**/obj
+apps/extension/build
+supabase/.temp
