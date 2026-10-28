@@ -33,6 +33,11 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
 builder.Configuration.AddJsonFile(Path.Combine(AgentOptions.DefaultDataDirectory(), "agentsettings.json"), optional: true, reloadOnChange: false);
 builder.Configuration.AddEnvironmentVariables("BSP_");
 builder.Services.AddWindowsService(o => o.ServiceName = AgentConstants.ServiceName);
+if (OperatingSystem.IsWindows())
+{
+    // Application log, source "Vector58BrowserSecurity" (the service runs as SYSTEM, which may register the source).
+    AgentServices.ConfigureEventLog(builder.Services);
+}
 AgentServices.Add(builder.Services, builder.Configuration.GetSection(AgentOptions.Section));
 
 using var host = builder.Build();
@@ -61,6 +66,10 @@ namespace BrowserSecurity.Agent.Service
 {
     public static class AgentServices
     {
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public static void ConfigureEventLog(IServiceCollection services) =>
+            services.Configure<Microsoft.Extensions.Logging.EventLog.EventLogSettings>(s => s.SourceName = AgentConstants.ServiceName);
+
         public static void Add(IServiceCollection services, Microsoft.Extensions.Configuration.IConfiguration section)
         {
             services.Configure<AgentOptions>(section);
