@@ -12,3 +12,4 @@ services/windows-agent/artifacts
 services/windows-agent/**/Fixtures/vectors.json
 test-results
 .pgdata
+apps/admin/next-env.d.ts
