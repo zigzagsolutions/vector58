@@ -1,0 +1,15 @@
+node_modules
+dist
+.next
+.turbo
+coverage
+pnpm-lock.yaml
+services/windows-agent/**/bin
+services/windows-agent/**/obj
+apps/extension/build
+supabase/.temp
+services/windows-agent/artifacts
+services/windows-agent/**/Fixtures/vectors.json
+test-results
+.pgdata
+apps/admin/next-env.d.ts

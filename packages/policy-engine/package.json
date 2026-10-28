@@ -1,0 +1,29 @@
+{
+  "name": "@bsp/policy-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Policy compiler: threat intel + tenant rules -> PolicyPayload",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bsp/policy-types": "workspace:*",
+    "@bsp/shared": "workspace:*",
+    "@bsp/url-normalizer": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5"
+  }
+}

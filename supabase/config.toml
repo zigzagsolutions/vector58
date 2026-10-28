@@ -1,0 +1,42 @@
+# Supabase CLI configuration for local development (`supabase start`).
+# Hosted projects are configured in the Supabase dashboard; see docs/deployment.md.
+project_id = "browser-security-platform"
+
+[api]
+enabled = true
+port = 54321
+# Browser roles get SELECT on a curated set of tables (RLS-enforced); all writes go through the Next.js API.
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+# Invite-only: platform admins or tenant owners add users; nobody self-registers into a tenant.
+enable_signup = false
+enable_refresh_token_rotation = true
+
+[auth.email]
+enable_signup = false
+enable_confirmations = false
+
+[functions.scheduled-maintenance]
+verify_jwt = true
+
+[functions.threat-feed-sync]
+verify_jwt = true

@@ -1,0 +1,34 @@
+{
+  "name": "browser-security-platform",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Vector58 multi-tenant enterprise browser security platform (Phase 1)",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:db": "pnpm --filter @bsp/tests test:db",
+    "test:e2e": "pnpm --filter @bsp/tests test:e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "dev": "turbo run dev --filter=@bsp/admin",
+    "db:local": "bash scripts/local-postgres.sh",
+    "db:reset": "bash scripts/db-reset.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.0.0",
+    "eslint": "^10.13.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
+  }
+}

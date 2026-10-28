@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>BrowserSecurity.Agent.Tests</RootNamespace>
+    <!-- Test method names use underscores. -->
+    <NoWarn>$(NoWarn);CA1707;CA2000;CA1001;CA1063;CA1816</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BrowserSecurity.Agent.Shared\BrowserSecurity.Agent.Shared.csproj" />
+    <ProjectReference Include="..\..\src\BrowserSecurity.Agent.Service\BrowserSecurity.Agent.Service.csproj" />
+    <ProjectReference Include="..\..\src\BrowserSecurity.Agent.NativeMessaging\BrowserSecurity.Agent.NativeMessaging.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

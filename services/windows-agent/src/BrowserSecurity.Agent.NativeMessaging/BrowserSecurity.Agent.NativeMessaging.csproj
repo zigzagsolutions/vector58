@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>BrowserSecurity.Agent.NativeMessaging</RootNamespace>
+    <AssemblyName>BrowserSecurity.NativeHost</AssemblyName>
+    <Description>Chrome/Edge native messaging host. Relays framed JSON between the extension (stdio) and the agent service (named pipe).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BrowserSecurity.Agent.Shared\BrowserSecurity.Agent.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="BrowserSecurity.Agent.Tests" />
+    <None Update="nativehost.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

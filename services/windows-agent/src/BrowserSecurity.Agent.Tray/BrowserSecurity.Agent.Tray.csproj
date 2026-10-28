@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>BrowserSecurity.Agent.Tray</RootNamespace>
+    <AssemblyName>BrowserSecurity.Tray</AssemblyName>
+    <Description>Per-user notification-area status for the Browser Security agent. Cannot disable protection.</Description>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BrowserSecurity.Agent.Shared\BrowserSecurity.Agent.Shared.csproj" />
+  </ItemGroup>
+</Project>

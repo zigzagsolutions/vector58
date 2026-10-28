@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>BrowserSecurity.Agent.Shared</RootNamespace>
+    <Description>Contracts shared by the agent service, native messaging host and tray: canonical JSON, policy validation, framing, API and IPC models.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="BrowserSecurity.Agent.Tests" />
+  </ItemGroup>
+</Project>
